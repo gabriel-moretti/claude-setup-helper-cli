@@ -9,9 +9,38 @@ import {
   isCancel,
   log,
 } from '@clack/prompts'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
-import { installPlugin, installMcp, installSkill } from './installer.js'
+import { installPlugin, installMcp, installSkill, installGuardrails } from './installer.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const TOOL_ROOT = path.resolve(__dirname, '..')
+
+function resolveGuardrails(langKeys: string[], fwKeys: string[], devopsKeys: string[]): string[] {
+  const files = new Set<string>()
+  if (langKeys.includes('typescript')) files.add('frontend.md')
+  if (langKeys.includes('python')) files.add('backend.md')
+  if (langKeys.includes('flutter')) files.add('frontend.md')
+  if (langKeys.includes('swift')) files.add('frontend.md')
+  if (fwKeys.includes('nextjs')) {
+    files.add('nextjs-fullstack.md')
+    files.add('frontend.md')
+    files.add('backend.md')
+  }
+  if (fwKeys.includes('fastapi')) {
+    files.add('backend.md')
+    files.add('rest-api.md')
+  }
+  if (devopsKeys.includes('aws')) {
+    files.add('aws-cost.md')
+    files.add('aws-security.md')
+    files.add('github-actions.md')
+  }
+  if (devopsKeys.includes('supabase')) files.add('supabase.md')
+  return [...files]
+}
 
 function bail(value: unknown): void {
   if (isCancel(value)) {
@@ -70,18 +99,26 @@ async function main(): Promise<void> {
   bail(extraSel)
   for (const i of extraSel as number[]) toInstall.push(extraItems[i])
 
-  if (toInstall.length === 0) {
+  // 6. Guardrails — derived from selections, no per-file choice
+  const wantGuardrails = await confirm({ message: 'Adicionar Guardrails?' })
+  bail(wantGuardrails)
+  const guardrailFiles = wantGuardrails
+    ? resolveGuardrails(langs.map((l) => l.key), fws.map((f) => f.key), devops.map((d) => d.key))
+    : []
+
+  if (toInstall.length === 0 && guardrailFiles.length === 0) {
     outro('Nada selecionado.')
     process.exit(0)
   }
 
-  // 6. Summary
+  // 7. Summary
   const counts = { plugin: 0, skill: 0, mcp: 0 }
   for (const it of toInstall) counts[it.method]++
+  const guardrailLine = guardrailFiles.length > 0 ? `\n  guardrails: ${guardrailFiles.join(', ')}` : ''
   note(
-    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs\n` +
+    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs${guardrailLine}\n` +
       toInstall.map((it) => `  - ${it.label}`).join('\n'),
-    `${toInstall.length} itens`
+    `${toInstall.length + (guardrailFiles.length > 0 ? 1 : 0)} itens`
   )
 
   const projectDir = process.cwd()
@@ -108,6 +145,20 @@ async function main(): Promise<void> {
     } catch (err: any) {
       results.push({ label: item.label, success: false, error: err?.message ?? String(err) })
       s.stop(`[${i + 1}/${total}] FALHOU ${item.label}`, 2)
+    }
+  }
+
+  // Guardrails install (local copy — fast, no spinner needed)
+  if (guardrailFiles.length > 0) {
+    const s = spinner()
+    s.start(`Instalando guardrails (${guardrailFiles.length} arquivos)...`)
+    try {
+      installGuardrails(guardrailFiles, projectDir, TOOL_ROOT)
+      results.push({ label: 'guardrails', success: true })
+      s.stop(`OK guardrails → .claude/guardrails/`)
+    } catch (err: any) {
+      results.push({ label: 'guardrails', success: false, error: err?.message ?? String(err) })
+      s.stop(`FALHOU guardrails`, 2)
     }
   }
 

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fetchSkill } from './skill-fetcher.js'
 import type { PluginSource, McpSource, SkillSource } from './types.js'
@@ -18,6 +19,15 @@ export function installPlugin(source: PluginSource, projectDir: string): void {
 
 export function installMcp(source: McpSource, projectDir: string): void {
   run('claude', ['mcp', 'add', '--scope', 'project', source.name, source.command, ...source.args], projectDir)
+}
+
+export function installGuardrails(files: string[], projectDir: string, toolRoot: string): void {
+  const srcDir = path.join(toolRoot, 'assets', 'guardrails')
+  const destDir = path.join(projectDir, '.claude', 'guardrails')
+  fs.mkdirSync(destDir, { recursive: true })
+  for (const file of files) {
+    fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file))
+  }
 }
 
 export async function installSkill(source: SkillSource, projectDir: string): Promise<void> {
