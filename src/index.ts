@@ -1,5 +1,4 @@
 import {
-  intro,
   outro,
   multiselect,
   select,
@@ -12,6 +11,7 @@ import {
 } from '@clack/prompts'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { printHeader } from './header.js'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
 import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules, installHooks, updateClaudeMd } from './installer.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
@@ -62,7 +62,7 @@ async function pickCategories(cats: Category[], message: string, required: boole
 }
 
 async function main(): Promise<void> {
-  intro('claude-setup-helper')
+  printHeader()
 
   const toInstall: CatalogItem[] = []
 
