@@ -12,7 +12,7 @@ import {
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
-import { installPlugin, installMcp, installSkill, installGuardrails } from './installer.js'
+import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules } from './installer.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -99,26 +99,32 @@ async function main(): Promise<void> {
   bail(extraSel)
   for (const i of extraSel as number[]) toInstall.push(extraItems[i])
 
-  // 6. Guardrails — derived from selections, no per-file choice
+  // 6. Base rules — universal, always all 3 files
+  const wantBaserules = await confirm({ message: 'Adicionar Base Rules?' })
+  bail(wantBaserules)
+
+  // 7. Guardrails — derived from selections, no per-file choice
   const wantGuardrails = await confirm({ message: 'Adicionar Guardrails?' })
   bail(wantGuardrails)
   const guardrailFiles = wantGuardrails
     ? resolveGuardrails(langs.map((l) => l.key), fws.map((f) => f.key), devops.map((d) => d.key))
     : []
 
-  if (toInstall.length === 0 && guardrailFiles.length === 0) {
+  if (toInstall.length === 0 && !wantBaserules && guardrailFiles.length === 0) {
     outro('Nada selecionado.')
     process.exit(0)
   }
 
-  // 7. Summary
+  // 8. Summary
   const counts = { plugin: 0, skill: 0, mcp: 0 }
   for (const it of toInstall) counts[it.method]++
+  const baseruleLine = wantBaserules ? '\n  base rules: ignore-files.md, language.md, security.md' : ''
   const guardrailLine = guardrailFiles.length > 0 ? `\n  guardrails: ${guardrailFiles.join(', ')}` : ''
+  const extras = (wantBaserules ? 1 : 0) + (guardrailFiles.length > 0 ? 1 : 0)
   note(
-    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs${guardrailLine}\n` +
+    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs${baseruleLine}${guardrailLine}\n` +
       toInstall.map((it) => `  - ${it.label}`).join('\n'),
-    `${toInstall.length + (guardrailFiles.length > 0 ? 1 : 0)} itens`
+    `${toInstall.length + extras} itens`
   )
 
   const projectDir = process.cwd()
@@ -148,7 +154,21 @@ async function main(): Promise<void> {
     }
   }
 
-  // Guardrails install (local copy — fast, no spinner needed)
+  // Baserules install
+  if (wantBaserules) {
+    const s = spinner()
+    s.start('Instalando base rules...')
+    try {
+      installBaserules(projectDir, TOOL_ROOT)
+      results.push({ label: 'base rules', success: true })
+      s.stop('OK base rules → .claude/baserules/')
+    } catch (err: any) {
+      results.push({ label: 'base rules', success: false, error: err?.message ?? String(err) })
+      s.stop('FALHOU base rules', 2)
+    }
+  }
+
+  // Guardrails install
   if (guardrailFiles.length > 0) {
     const s = spinner()
     s.start(`Instalando guardrails (${guardrailFiles.length} arquivos)...`)

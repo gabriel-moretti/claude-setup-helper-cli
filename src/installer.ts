@@ -21,13 +21,28 @@ export function installMcp(source: McpSource, projectDir: string): void {
   run('claude', ['mcp', 'add', '--scope', 'project', source.name, source.command, ...source.args], projectDir)
 }
 
-export function installGuardrails(files: string[], projectDir: string, toolRoot: string): void {
-  const srcDir = path.join(toolRoot, 'assets', 'guardrails')
-  const destDir = path.join(projectDir, '.claude', 'guardrails')
+function copyLocalRules(srcDir: string, files: string[], destDir: string): void {
   fs.mkdirSync(destDir, { recursive: true })
   for (const file of files) {
     fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file))
   }
+}
+
+export function installGuardrails(files: string[], projectDir: string, toolRoot: string): void {
+  copyLocalRules(
+    path.join(toolRoot, 'assets', 'guardrails'),
+    files,
+    path.join(projectDir, '.claude', 'guardrails'),
+  )
+}
+
+export function installBaserules(projectDir: string, toolRoot: string): void {
+  const files = ['ignore-files.md', 'language.md', 'security.md']
+  copyLocalRules(
+    path.join(toolRoot, 'assets', 'baserules'),
+    files,
+    path.join(projectDir, '.claude', 'baserules'),
+  )
 }
 
 export async function installSkill(source: SkillSource, projectDir: string): Promise<void> {
