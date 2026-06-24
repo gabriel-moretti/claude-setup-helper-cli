@@ -181,9 +181,9 @@ export const EXTRAS: { mcps: CatalogItem[]; skills: CatalogItem[] } = {
   skills: [
     { label: 'superpowers (plugin)', method: 'plugin', plugin: { name: 'superpowers', marketplace: OFFICIAL } },
     {
-      label: 'error-handling-patterns',
+      label: 'python-error-handling',
       method: 'skill',
-      skill: { org: 'wshobson', repo: 'agents', subdir: 'plugins/agents/skills/error-handling-patterns' },
+      skill: { org: 'wshobson', repo: 'agents', subdir: 'plugins/python-development/skills/python-error-handling' },
     },
     {
       label: 'audit (impeccable)',
