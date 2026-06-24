@@ -2,6 +2,7 @@ import {
   intro,
   outro,
   multiselect,
+  select,
   confirm,
   note,
   spinner,
@@ -12,7 +13,7 @@ import {
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
-import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules, updateClaudeMd } from './installer.js'
+import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules, installHooks, updateClaudeMd } from './installer.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -99,7 +100,18 @@ async function main(): Promise<void> {
   bail(extraSel)
   for (const i of extraSel as number[]) toInstall.push(extraItems[i])
 
-  // 6. Base rules — universal, always all 3 files
+  // 6. Hooks — quality dubious edition
+  const hooksChoice = await select({
+    message: 'Instalar hooks de qualidade duvidosa?',
+    options: [
+      { value: 'yes-sound',    label: 'Sim 🔊  (com som)' },
+      { value: 'yes-no-sound', label: 'Sim 🔇  (sem som)' },
+      { value: 'no',           label: 'Não' },
+    ],
+  })
+  bail(hooksChoice)
+
+  // 7. Base rules — universal, always all 3 files
   const wantBaserules = await confirm({ message: 'Adicionar Base Rules?' })
   bail(wantBaserules)
 
@@ -110,7 +122,7 @@ async function main(): Promise<void> {
     ? resolveGuardrails(langs.map((l) => l.key), fws.map((f) => f.key), devops.map((d) => d.key))
     : []
 
-  if (toInstall.length === 0 && !wantBaserules && guardrailFiles.length === 0) {
+  if (toInstall.length === 0 && hooksChoice === 'no' && !wantBaserules && guardrailFiles.length === 0) {
     outro('Nada selecionado.')
     process.exit(0)
   }
@@ -151,6 +163,20 @@ async function main(): Promise<void> {
     } catch (err: any) {
       results.push({ label: item.label, success: false, error: err?.message ?? String(err) })
       s.stop(`[${i + 1}/${total}] FALHOU ${item.label}`, 2)
+    }
+  }
+
+  // Hooks install
+  if (hooksChoice !== 'no') {
+    const s = spinner()
+    s.start('Instalando hooks...')
+    try {
+      installHooks(projectDir, hooksChoice === 'yes-sound', TOOL_ROOT)
+      results.push({ label: 'hooks', success: true })
+      s.stop('OK hooks → .claude/hooks/ + .claude/settings.json')
+    } catch (err: any) {
+      results.push({ label: 'hooks', success: false, error: err?.message ?? String(err) })
+      s.stop('FALHOU hooks', 2)
     }
   }
 

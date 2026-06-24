@@ -17,7 +17,7 @@ TOOL_INPUT=$(printf '%s' "$INPUT" | python3 -c \
 # --- sound ---
 _sound_leak() {
   [ "${CLAUDE_SOUND_ALERTS:-0}" = "1" ] || return 0
-  local f="${HOME}/.claude/sounds/john-cena.mp3"
+  local f="${HOME}/.claude/sounds/john-cena_5.mp3"
   if [ -f "$f" ]; then afplay "$f" 2>/dev/null &
   else afplay /System/Library/Sounds/Funk.aiff 2>/dev/null &
   fi

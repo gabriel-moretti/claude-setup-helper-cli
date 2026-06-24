@@ -3,7 +3,7 @@
 
 [ "${CLAUDE_SOUND_ALERTS:-0}" = "1" ] || exit 0
 
-CUSTOM="${HOME}/.claude/sounds/service-ended.mp3"
+CUSTOM="${HOME}/.claude/sounds/metalgearsolid.mp3"
 if [ -f "$CUSTOM" ]; then
   afplay "$CUSTOM" 2>/dev/null &
 else

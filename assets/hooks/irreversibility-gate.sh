@@ -25,7 +25,7 @@ esac
 # --- sound ---
 _sound() {
   [ "${CLAUDE_SOUND_ALERTS:-0}" = "1" ] || return 0
-  local f="${HOME}/.claude/sounds/${1}.mp3"
+  local f="${HOME}/.claude/sounds/sound-of-da-police.mp3"
   if [ -f "$f" ]; then afplay "$f" 2>/dev/null &
   else afplay /System/Library/Sounds/Basso.aiff 2>/dev/null &
   fi

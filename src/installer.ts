@@ -45,6 +45,42 @@ export function installBaserules(projectDir: string, toolRoot: string): void {
   )
 }
 
+export function installHooks(projectDir: string, soundsEnabled: boolean, toolRoot: string): void {
+  const srcDir = path.join(toolRoot, 'assets', 'hooks')
+  const destDir = path.join(projectDir, '.claude', 'hooks')
+  fs.mkdirSync(destDir, { recursive: true })
+
+  const scripts = [
+    'irreversibility-gate.sh',
+    'secret-leak-gate.sh',
+    'quality-gate.sh',
+    'service-ended.sh',
+    'service-input-needed.sh',
+  ]
+  for (const s of scripts) {
+    fs.copyFileSync(path.join(srcDir, s), path.join(destDir, s))
+    fs.chmodSync(path.join(destDir, s), 0o755)
+  }
+
+  // merge hooks into .claude/settings.json
+  const settingsPath = path.join(projectDir, '.claude', 'settings.json')
+  const existing = fs.existsSync(settingsPath)
+    ? JSON.parse(fs.readFileSync(settingsPath, 'utf8'))
+    : {}
+  const hookTemplate = JSON.parse(
+    fs.readFileSync(path.join(srcDir, 'hooks-settings.json'), 'utf8'),
+  )
+  existing.hooks = hookTemplate.hooks
+  if (soundsEnabled) {
+    existing.env = { ...(existing.env ?? {}), CLAUDE_SOUND_ALERTS: '1' }
+  }
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true })
+  fs.writeFileSync(settingsPath, JSON.stringify(existing, null, 2) + '\n', 'utf8')
+
+  // ensure ~/.claude/sounds/ exists for user to drop MP3s
+  fs.mkdirSync(path.join(process.env['HOME'] ?? '~', '.claude', 'sounds'), { recursive: true })
+}
+
 export function updateClaudeMd(projectDir: string, imports: string[]): void {
   if (imports.length === 0) return
 

@@ -133,6 +133,13 @@ esac
 
 # ── Output ────────────────────────────────────────────────────────────────────
 if [ -n "$ISSUES" ]; then
+  # sound
+  if [ "${CLAUDE_SOUND_ALERTS:-0}" = "1" ]; then
+    f="${HOME}/.claude/sounds/spongebob-fail.mp3"
+    if [ -f "$f" ]; then afplay "$f" 2>/dev/null &
+    else afplay /System/Library/Sounds/Sosumi.aiff 2>/dev/null &
+    fi
+  fi
   printf '⚠️  quality-gate [%s]\n\n%b\n\nCorrija os problemas acima antes de continuar.' \
     "$FILE_PATH" "$ISSUES"
   exit 1   # non-zero feeds output back to Claude as context to self-correct
