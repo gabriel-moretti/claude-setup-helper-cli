@@ -18,13 +18,8 @@ export const LANGUAGES: Category[] = [
         plugin: { name: 'code-simplifier', marketplace: OFFICIAL },
       },
     ],
-    qa: [
-      {
-        label: 'vitest (testing skill)',
-        method: 'skill',
-        skill: { org: 'benjaminasterA', repo: 'antigravity-awesome-skills', subdir: 'skills/vitest-testing' },
-      },
-    ],
+    // TODO: add vitest-testing when correct repo is found
+    qa: [],
   },
   {
     key: 'python',
