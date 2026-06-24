@@ -48,7 +48,7 @@ export function printHeader(): void {
     const usedCols = stripAnsi(rendered).length
     const by = 'By: Gabriel Moretti'
     const gap = Math.max(1, cols - usedCols - by.length - 1)
-    return `${rendered}${' '.repeat(gap)}${DIM}${GRAY}${by}${R}\n`
+    return `${rendered}\n${DIM}${GRAY}${by}${R}\n`
   })
 
   for (const line of setupLines) process.stdout.write(line)
