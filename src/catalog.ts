@@ -10,8 +10,7 @@ export const LANGUAGES: Category[] = [
       {
         label: 'typescript-best-practices',
         method: 'skill',
-        // formerly 0xbigboss/claude-code, renamed
-        skill: { org: 'alleneubank', repo: 'claude-code', subdir: '.claude/skills/typescript-best-practices' },
+        skill: { org: 'jwynia', repo: 'agent-skills', subdir: 'skills/typescript-best-practices' },
       },
       {
         label: 'code-simplifier (plugin)',
@@ -23,8 +22,7 @@ export const LANGUAGES: Category[] = [
       {
         label: 'vitest (testing skill)',
         method: 'skill',
-        // TODO: verify repo — no canonical 'vitest-testing'; using personal dotfiles
-        skill: { org: 'mcclowes', repo: 'omg', subdir: '.claude/skills/vitest' },
+        skill: { org: 'benjaminasterA', repo: 'antigravity-awesome-skills', subdir: 'skills/vitest-testing' },
       },
     ],
   },
@@ -215,8 +213,7 @@ export const EXTRAS: { mcps: CatalogItem[]; skills: CatalogItem[] } = {
     {
       label: 'awesome-design',
       method: 'skill',
-      // TODO: verify repo
-      skill: { org: 'bergside', repo: 'awesome-design-skills' },
+      skill: { org: 'VoltAgent', repo: 'awesome-design-md' },
     },
   ],
 }
