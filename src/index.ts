@@ -12,7 +12,7 @@ import {
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
-import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules } from './installer.js'
+import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules, updateClaudeMd } from './installer.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -155,11 +155,14 @@ async function main(): Promise<void> {
   }
 
   // Baserules install
+  const claudeMdImports: string[] = []
   if (wantBaserules) {
     const s = spinner()
     s.start('Instalando base rules...')
     try {
+      const baseruleFiles = ['ignore-files.md', 'language.md', 'security.md']
       installBaserules(projectDir, TOOL_ROOT)
+      claudeMdImports.push(...baseruleFiles.map((f) => `.claude/baserules/${f}`))
       results.push({ label: 'base rules', success: true })
       s.stop('OK base rules → .claude/baserules/')
     } catch (err: any) {
@@ -174,11 +177,26 @@ async function main(): Promise<void> {
     s.start(`Instalando guardrails (${guardrailFiles.length} arquivos)...`)
     try {
       installGuardrails(guardrailFiles, projectDir, TOOL_ROOT)
+      claudeMdImports.push(...guardrailFiles.map((f) => `.claude/guardrails/${f}`))
       results.push({ label: 'guardrails', success: true })
       s.stop(`OK guardrails → .claude/guardrails/`)
     } catch (err: any) {
       results.push({ label: 'guardrails', success: false, error: err?.message ?? String(err) })
       s.stop(`FALHOU guardrails`, 2)
+    }
+  }
+
+  // CLAUDE.md update
+  if (claudeMdImports.length > 0) {
+    const s = spinner()
+    s.start('Atualizando CLAUDE.md...')
+    try {
+      updateClaudeMd(projectDir, claudeMdImports)
+      results.push({ label: 'CLAUDE.md', success: true })
+      s.stop('OK CLAUDE.md atualizado')
+    } catch (err: any) {
+      results.push({ label: 'CLAUDE.md', success: false, error: err?.message ?? String(err) })
+      s.stop('FALHOU CLAUDE.md', 2)
     }
   }
 

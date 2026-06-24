@@ -45,6 +45,25 @@ export function installBaserules(projectDir: string, toolRoot: string): void {
   )
 }
 
+export function updateClaudeMd(projectDir: string, imports: string[]): void {
+  if (imports.length === 0) return
+
+  const claudeMdPath = path.join(projectDir, 'CLAUDE.md')
+  const existing = fs.existsSync(claudeMdPath) ? fs.readFileSync(claudeMdPath, 'utf8') : null
+
+  // filter out already-present imports
+  const fresh = imports.filter((imp) => !existing?.includes(imp))
+  if (fresh.length === 0) return
+
+  const section = '\n## Rules\n\n' + fresh.map((imp) => `@${imp}`).join('\n') + '\n'
+
+  if (existing === null) {
+    fs.writeFileSync(claudeMdPath, `# Project Rules${section}`, 'utf8')
+  } else {
+    fs.appendFileSync(claudeMdPath, section, 'utf8')
+  }
+}
+
 export async function installSkill(source: SkillSource, projectDir: string): Promise<void> {
   // ponytail: use subdir basename when present so monorepo skills from the same
   // repo don't collide under .claude/skills; fall back to repo name otherwise.
