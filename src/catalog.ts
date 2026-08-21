@@ -10,7 +10,7 @@ export const LANGUAGES: Category[] = [
       {
         label: 'typescript-best-practices',
         method: 'skill',
-        skill: { org: 'jwynia', repo: 'agent-skills', subdir: 'skills/typescript-best-practices' },
+        skill: { org: 'jwynia', repo: 'agent-skills', subdir: 'skills/tech/development/tooling/typescript-best-practices' },
       },
       {
         label: 'code-simplifier (plugin)',
@@ -148,7 +148,7 @@ export const UIUX: Category = {
     {
       label: 'impeccable',
       method: 'skill',
-      skill: { org: 'pbakaus', repo: 'impeccable', subdir: '.claude-plugin/.agents/skills/impeccable' },
+      skill: { org: 'pbakaus', repo: 'impeccable', subdir: '.agents/skills/impeccable' },
     },
   ],
 }
@@ -184,16 +184,6 @@ export const EXTRAS: { mcps: CatalogItem[]; skills: CatalogItem[] } = {
       label: 'python-error-handling',
       method: 'skill',
       skill: { org: 'wshobson', repo: 'agents', subdir: 'plugins/python-development/skills/python-error-handling' },
-    },
-    {
-      label: 'audit (impeccable)',
-      method: 'skill',
-      skill: { org: 'pbakaus', repo: 'impeccable', subdir: 'skills/audit' },
-    },
-    {
-      label: 'optimize (impeccable)',
-      method: 'skill',
-      skill: { org: 'pbakaus', repo: 'impeccable', subdir: 'skills/optimize' },
     },
     {
       label: 'webgpu',

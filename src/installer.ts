@@ -36,13 +36,33 @@ export function installGuardrails(files: string[], projectDir: string, toolRoot:
   )
 }
 
-export function installBaserules(projectDir: string, toolRoot: string): void {
-  const files = ['ignore-files.md', 'language.md', 'security.md']
-  copyLocalRules(
-    path.join(toolRoot, 'assets', 'baserules'),
-    files,
-    path.join(projectDir, '.claude', 'baserules'),
-  )
+export function installBaserules(projectDir: string, toolRoot: string): string[] {
+  const srcDir = path.join(toolRoot, 'assets', 'baserules')
+  const files = fs.readdirSync(srcDir).filter((f) => f.endsWith('.md')).sort()
+  copyLocalRules(srcDir, files, path.join(projectDir, '.claude', 'baserules'))
+  return files
+}
+
+export function listBaserules(toolRoot: string): string[] {
+  return fs.readdirSync(path.join(toolRoot, 'assets', 'baserules')).filter((f) => f.endsWith('.md')).sort()
+}
+
+export function installLocalSkills(projectDir: string, toolRoot: string): string[] {
+  const srcDir = path.join(toolRoot, 'assets', 'skills')
+  const skills = fs.readdirSync(srcDir).filter((name) =>
+    fs.existsSync(path.join(srcDir, name, 'SKILL.md')),
+  ).sort()
+  for (const name of skills) {
+    fs.cpSync(path.join(srcDir, name), path.join(projectDir, '.claude', 'skills', name), { recursive: true })
+  }
+  return skills
+}
+
+export function installWorkflows(projectDir: string, toolRoot: string): string[] {
+  const srcDir = path.join(toolRoot, 'assets', 'workflows')
+  const files = fs.readdirSync(srcDir).filter((f) => f.endsWith('.js')).sort()
+  copyLocalRules(srcDir, files, path.join(projectDir, '.claude', 'workflows'))
+  return files
 }
 
 export function installHooks(projectDir: string, soundsEnabled: boolean, toolRoot: string): void {

@@ -34,6 +34,10 @@ This rule sets the language of every artifact. It overrides any default the agen
 - SHOULD route user-facing copy through an i18n/message layer (keys in English, values in PT-BR) rather than hardcoding Portuguese strings in logic — this keeps code English and copy translatable.
 - NEVER leak an internal English log/exception string directly to the user; map it to a Portuguese, user-safe message.
 
+## Agent chat replies → English
+
+- MUST reply to the human in English in chat/conversation (lower token cost; the team reads English fine). This changes NO artifact rule above — comments, docs, and user-facing copy stay PT-BR.
+
 ## Quick reference
 
 | Artifact | Language |
@@ -44,3 +48,4 @@ This rule sets the language of every artifact. It overrides any default the agen
 | `.claude` / `.cursor` / agent config / these guardrails | English |
 | UI copy, validation & error messages to users, emails | PT-BR |
 | Error `code`, enum values, log lines | English/code |
+| Agent chat replies to the team | English |

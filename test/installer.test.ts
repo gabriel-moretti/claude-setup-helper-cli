@@ -10,6 +10,9 @@ import {
   installGuardrails,
   installBaserules,
   installHooks,
+  installLocalSkills,
+  installWorkflows,
+  listBaserules,
   updateClaudeMd,
 } from '../src/installer.js'
 
@@ -136,13 +139,45 @@ test('installGuardrails: creates dest dir if absent', () => {
 
 // ── installBaserules ──────────────────────────────────────────────────────────
 
-test('installBaserules: copies all three base rule files', () => {
+test('installBaserules: copies every .md in assets/baserules and returns the list', () => {
   const dir = tmpDir()
   try {
-    installBaserules(dir, TOOL_ROOT)
+    const installed = installBaserules(dir, TOOL_ROOT)
     const destDir = path.join(dir, '.claude', 'baserules')
-    for (const f of ['ignore-files.md', 'language.md', 'security.md']) {
+    assert.deepEqual(installed, listBaserules(TOOL_ROOT))
+    for (const f of ['ignore-files.md', 'language.md', 'security.md', 'git-commits.md']) {
+      assert.ok(installed.includes(f), `${f} missing from returned list`)
       assert.ok(fs.existsSync(path.join(destDir, f)), `${f} not copied`)
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+// ── installLocalSkills / installWorkflows ─────────────────────────────────────
+
+test('installLocalSkills: copies only skill dirs containing SKILL.md', () => {
+  const dir = tmpDir()
+  try {
+    const installed = installLocalSkills(dir, TOOL_ROOT)
+    assert.ok(installed.includes('audit-rules'))
+    assert.ok(installed.includes('emojicommit'))
+    assert.ok(installed.includes('parallel-plan'))
+    for (const name of installed) {
+      assert.ok(fs.existsSync(path.join(dir, '.claude', 'skills', name, 'SKILL.md')), `${name}/SKILL.md not copied`)
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('installWorkflows: copies all .js workflows to .claude/workflows/', () => {
+  const dir = tmpDir()
+  try {
+    const installed = installWorkflows(dir, TOOL_ROOT)
+    assert.ok(installed.length >= 5, 'expected at least 5 workflows')
+    for (const f of installed) {
+      assert.ok(fs.existsSync(path.join(dir, '.claude', 'workflows', f)), `${f} not copied`)
     }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })

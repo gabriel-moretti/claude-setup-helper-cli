@@ -13,7 +13,8 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { printHeader } from './header.js'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
-import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules, installHooks, updateClaudeMd } from './installer.js'
+import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules, installHooks, installLocalSkills, installWorkflows, listBaserules, updateClaudeMd } from './installer.js'
+import { detectStack } from './detect.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -50,10 +51,11 @@ function bail(value: unknown): void {
   }
 }
 
-async function pickCategories(cats: Category[], message: string, required: boolean): Promise<Category[]> {
+async function pickCategories(cats: Category[], message: string, required: boolean, initial: string[] = []): Promise<Category[]> {
   const selected = await multiselect({
     message,
     options: cats.map((c) => ({ value: c.key, label: c.label })),
+    initialValues: initial.filter((k) => cats.some((c) => c.key === k)),
     required,
   })
   bail(selected)
@@ -66,8 +68,15 @@ async function main(): Promise<void> {
 
   const toInstall: CatalogItem[] = []
 
+  // 0. Stack auto-detection — pre-selects options, user still confirms
+  const detected = detectStack(process.cwd())
+  const detectedAll = [...detected.languages, ...detected.frameworks, ...detected.devops]
+  if (detectedAll.length > 0) {
+    note(detectedAll.join(', '), 'Stack detectada')
+  }
+
   // 1. Languages — required
-  const langs = await pickCategories(LANGUAGES, 'Linguagens (escolha pelo menos 1):', true)
+  const langs = await pickCategories(LANGUAGES, 'Linguagens (escolha pelo menos 1):', true, detected.languages)
   for (const lang of langs) {
     toInstall.push(...lang.items)
     if (lang.qa && lang.qa.length > 0) {
@@ -78,7 +87,7 @@ async function main(): Promise<void> {
   }
 
   // 2. Frameworks — optional
-  const fws = await pickCategories(FRAMEWORKS, 'Frameworks (opcional):', false)
+  const fws = await pickCategories(FRAMEWORKS, 'Frameworks (opcional):', false, detected.frameworks)
   for (const fw of fws) toInstall.push(...fw.items)
 
   // 3. UI/UX — confirm
@@ -87,7 +96,7 @@ async function main(): Promise<void> {
   if (wantUiux) toInstall.push(...UIUX.items)
 
   // 4. DevOps — optional
-  const devops = await pickCategories(DEVOPS, 'DevOps (opcional):', false)
+  const devops = await pickCategories(DEVOPS, 'DevOps (opcional):', false, detected.devops)
   for (const d of devops) toInstall.push(...d.items)
 
   // 5. Extras — optional
@@ -111,9 +120,18 @@ async function main(): Promise<void> {
   })
   bail(hooksChoice)
 
-  // 7. Base rules — universal, always all 3 files
+  // 7. Base rules — universal, always all files in assets/baserules
+  const baseruleFiles = listBaserules(TOOL_ROOT)
   const wantBaserules = await confirm({ message: 'Adicionar Base Rules?' })
   bail(wantBaserules)
+
+  // 7b. Local skills bundled with this tool (audit-rules, emojicommit, parallel-plan, ...)
+  const wantLocalSkills = await confirm({ message: 'Adicionar skills locais (audit-rules, emojicommit, parallel-plan)?' })
+  bail(wantLocalSkills)
+
+  // 7c. Workflows bundled with this tool
+  const wantWorkflows = await confirm({ message: 'Adicionar workflows (security-scan, perf-validate, uiux-audit, ...)?' })
+  bail(wantWorkflows)
 
   // 7. Guardrails — derived from selections, no per-file choice
   const wantGuardrails = await confirm({ message: 'Adicionar Guardrails?' })
@@ -122,7 +140,7 @@ async function main(): Promise<void> {
     ? resolveGuardrails(langs.map((l) => l.key), fws.map((f) => f.key), devops.map((d) => d.key))
     : []
 
-  if (toInstall.length === 0 && hooksChoice === 'no' && !wantBaserules && guardrailFiles.length === 0) {
+  if (toInstall.length === 0 && hooksChoice === 'no' && !wantBaserules && !wantLocalSkills && !wantWorkflows && guardrailFiles.length === 0) {
     outro('Nada selecionado.')
     process.exit(0)
   }
@@ -130,11 +148,13 @@ async function main(): Promise<void> {
   // 8. Summary
   const counts = { plugin: 0, skill: 0, mcp: 0 }
   for (const it of toInstall) counts[it.method]++
-  const baseruleLine = wantBaserules ? '\n  base rules: ignore-files.md, language.md, security.md' : ''
+  const baseruleLine = wantBaserules ? `\n  base rules: ${baseruleFiles.join(', ')}` : ''
   const guardrailLine = guardrailFiles.length > 0 ? `\n  guardrails: ${guardrailFiles.join(', ')}` : ''
-  const extras = (wantBaserules ? 1 : 0) + (guardrailFiles.length > 0 ? 1 : 0)
+  const localLine = (wantLocalSkills ? '\n  skills locais: audit-rules, emojicommit, parallel-plan' : '') +
+    (wantWorkflows ? '\n  workflows: .claude/workflows/' : '')
+  const extras = (wantBaserules ? 1 : 0) + (guardrailFiles.length > 0 ? 1 : 0) + (wantLocalSkills ? 1 : 0) + (wantWorkflows ? 1 : 0)
   note(
-    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs${baseruleLine}${guardrailLine}\n` +
+    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs${baseruleLine}${guardrailLine}${localLine}\n` +
       toInstall.map((it) => `  - ${it.label}`).join('\n'),
     `${toInstall.length + extras} itens`
   )
@@ -186,14 +206,41 @@ async function main(): Promise<void> {
     const s = spinner()
     s.start('Instalando base rules...')
     try {
-      const baseruleFiles = ['ignore-files.md', 'language.md', 'security.md']
-      installBaserules(projectDir, TOOL_ROOT)
-      claudeMdImports.push(...baseruleFiles.map((f) => `.claude/baserules/${f}`))
+      const installed = installBaserules(projectDir, TOOL_ROOT)
+      claudeMdImports.push(...installed.map((f) => `.claude/baserules/${f}`))
       results.push({ label: 'base rules', success: true })
       s.stop('OK base rules → .claude/baserules/')
     } catch (err: any) {
       results.push({ label: 'base rules', success: false, error: err?.message ?? String(err) })
       s.stop('FALHOU base rules', 2)
+    }
+  }
+
+  // Local skills install
+  if (wantLocalSkills) {
+    const s = spinner()
+    s.start('Instalando skills locais...')
+    try {
+      const installed = installLocalSkills(projectDir, TOOL_ROOT)
+      results.push({ label: 'skills locais', success: true })
+      s.stop(`OK skills locais (${installed.join(', ')}) → .claude/skills/`)
+    } catch (err: any) {
+      results.push({ label: 'skills locais', success: false, error: err?.message ?? String(err) })
+      s.stop('FALHOU skills locais', 2)
+    }
+  }
+
+  // Workflows install
+  if (wantWorkflows) {
+    const s = spinner()
+    s.start('Instalando workflows...')
+    try {
+      const installed = installWorkflows(projectDir, TOOL_ROOT)
+      results.push({ label: 'workflows', success: true })
+      s.stop(`OK workflows (${installed.length}) → .claude/workflows/`)
+    } catch (err: any) {
+      results.push({ label: 'workflows', success: false, error: err?.message ?? String(err) })
+      s.stop('FALHOU workflows', 2)
     }
   }
 
