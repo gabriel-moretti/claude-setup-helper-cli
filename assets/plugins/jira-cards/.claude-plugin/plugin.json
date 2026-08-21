@@ -1,0 +1,9 @@
+{
+  "name": "jira-cards",
+  "version": "0.4.0",
+  "description": "Gera descrições de cards do Jira no formato fixo da equipe (Epic/PRD, Request, Bug, Chore, Feature, Spike, Story) — prontas pra colar, com os metadados indo pros campos do Jira (não pro texto). card-triagem decide qual card criar; card-request é a porta de entrada de pedidos externos; ao finalizar uma Epic, oferece fracionar em Feature/Story/Spike/Chore. Estimativa em story points. Skills: card-triagem, card-request, card-epic, card-bug, card-chore, card-feature, card-spike, card-story.",
+  "author": {
+    "name": "DeltaPag — Tecnologia"
+  },
+  "keywords": ["jira", "templates", "cards", "product", "engenharia", "pt-br"]
+}

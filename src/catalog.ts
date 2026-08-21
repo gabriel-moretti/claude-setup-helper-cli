@@ -200,5 +200,10 @@ export const EXTRAS: { mcps: CatalogItem[]; skills: CatalogItem[] } = {
       method: 'skill',
       skill: { org: 'VoltAgent', repo: 'awesome-design-md' },
     },
+    {
+      label: 'Jira Helper',
+      method: 'local',
+      local: { dir: 'plugins/jira-cards' },
+    },
   ],
 }

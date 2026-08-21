@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fetchSkill } from './skill-fetcher.js'
-import type { PluginSource, McpSource, SkillSource } from './types.js'
+import type { PluginSource, McpSource, SkillSource, LocalSource } from './types.js'
 
 function run(cmd: string, args: string[], cwd: string): void {
   try {
@@ -118,6 +118,17 @@ export function updateClaudeMd(projectDir: string, imports: string[]): void {
   } else {
     fs.appendFileSync(claudeMdPath, section, 'utf8')
   }
+}
+
+export function installLocalPlugin(source: LocalSource, projectDir: string, toolRoot: string): string[] {
+  const skillsDir = path.join(toolRoot, 'assets', source.dir, 'skills')
+  const skills = fs.readdirSync(skillsDir).filter((name) =>
+    fs.existsSync(path.join(skillsDir, name, 'SKILL.md')),
+  ).sort()
+  for (const name of skills) {
+    fs.cpSync(path.join(skillsDir, name), path.join(projectDir, '.claude', 'skills', name), { recursive: true })
+  }
+  return skills
 }
 
 export async function installSkill(source: SkillSource, projectDir: string): Promise<void> {

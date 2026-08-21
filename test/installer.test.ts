@@ -11,6 +11,7 @@ import {
   installBaserules,
   installHooks,
   installLocalSkills,
+  installLocalPlugin,
   installWorkflows,
   listBaserules,
   updateClaudeMd,
@@ -163,6 +164,22 @@ test('installLocalSkills: copies only skill dirs containing SKILL.md', () => {
     assert.ok(installed.includes('audit-rules'))
     assert.ok(installed.includes('emojicommit'))
     assert.ok(installed.includes('parallel-plan'))
+    for (const name of installed) {
+      assert.ok(fs.existsSync(path.join(dir, '.claude', 'skills', name, 'SKILL.md')), `${name}/SKILL.md not copied`)
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('installLocalPlugin: copies every card skill from the bundled jira plugin', () => {
+  const dir = tmpDir()
+  try {
+    const installed = installLocalPlugin({ dir: 'plugins/jira-cards' }, dir, TOOL_ROOT)
+    assert.ok(installed.includes('card-triagem'))
+    assert.ok(installed.includes('card-epic'))
+    assert.ok(installed.includes('card-bug'))
+    assert.equal(installed.length, 8, 'jira plugin ships 8 card skills')
     for (const name of installed) {
       assert.ok(fs.existsSync(path.join(dir, '.claude', 'skills', name, 'SKILL.md')), `${name}/SKILL.md not copied`)
     }

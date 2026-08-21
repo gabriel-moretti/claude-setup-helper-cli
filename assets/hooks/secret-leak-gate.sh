@@ -36,9 +36,16 @@ _has_secret() {
   echo "$text" | grep -qiE 'service_role'             && found="${found:+$found, }Supabase service_role"
   # PEM private key
   echo "$text" | grep -q 'BEGIN.*PRIVATE KEY'         && found="${found:+$found, }PEM private key"
-  # Generic: PASSWORD/TOKEN/SECRET/API_KEY = value > 16 chars (env format)
-  echo "$text" | grep -qiE '(PASSWORD|TOKEN|SECRET|API_KEY|AUTH_KEY)\s*=\s*.{16,}' \
-                                                       && found="${found:+$found, }credential in env format"
+  # Generic: PASSWORD/TOKEN/SECRET/API_KEY = high-entropy value (env format).
+  # Value must be contiguous (no spaces => real secret, not prose) and not an
+  # obvious placeholder, so API-doc/plan examples (API_KEY=<your-key>,
+  # TOKEN=changeme, SECRET=your-value-here) don't false-positive.
+  # ponytail: whole-text scan, so a real secret AND a placeholder in the same
+  # file lets the real one slip; per-line scan if that ever bites.
+  if echo "$text" | grep -qiE '(PASSWORD|TOKEN|SECRET|API_KEY|AUTH_KEY)[[:space:]]*=[[:space:]]*[A-Za-z0-9/+_.-]{16,}' \
+     && ! echo "$text" | grep -qiE '(PASSWORD|TOKEN|SECRET|API_KEY|AUTH_KEY)[[:space:]]*=[[:space:]]*(your[_-]|xxx|example|placeholder|changeme|dummy|fake|sample|redacted|<|\{|\$)'; then
+    found="${found:+$found, }credential in env format"
+  fi
 
   if [ -n "$found" ]; then
     printf '%s' "$found"

@@ -1,4 +1,4 @@
-export type InstallMethod = 'plugin' | 'skill' | 'mcp'
+export type InstallMethod = 'plugin' | 'skill' | 'mcp' | 'local'
 
 export interface SkillSource {
   org: string
@@ -18,12 +18,17 @@ export interface McpSource {
   args: string[]      // e.g. ['-y', '@package/name']
 }
 
+export interface LocalSource {
+  dir: string         // dir under assets/ holding a plugin with a skills/ subfolder
+}
+
 export interface CatalogItem {
   label: string
   method: InstallMethod
   skill?: SkillSource
   plugin?: PluginSource
   mcp?: McpSource
+  local?: LocalSource
 }
 
 export interface Category {

@@ -54,6 +54,14 @@ test('each item method matches its source field', () => {
     if (item.method === 'skill')  assert.ok(item.skill,  `skill source missing: ${item.label}`)
     if (item.method === 'plugin') assert.ok(item.plugin, `plugin source missing: ${item.label}`)
     if (item.method === 'mcp')    assert.ok(item.mcp,    `mcp source missing: ${item.label}`)
+    if (item.method === 'local')  assert.ok(item.local,  `local source missing: ${item.label}`)
+  }
+})
+
+test('local items have a non-empty dir', () => {
+  for (const item of ALL.filter((i) => i.method === 'local')) {
+    assert.ok(item.local, `local item missing .local: ${item.label}`)
+    assert.ok(item.local!.dir.length > 0, `empty local dir in: ${item.label}`)
   }
 })
 

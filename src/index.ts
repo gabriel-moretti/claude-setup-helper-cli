@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { printHeader } from './header.js'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
-import { installPlugin, installMcp, installSkill, installGuardrails, installBaserules, installHooks, installLocalSkills, installWorkflows, listBaserules, updateClaudeMd } from './installer.js'
+import { installPlugin, installMcp, installSkill, installLocalPlugin, installGuardrails, installBaserules, installHooks, installLocalSkills, installWorkflows, listBaserules, updateClaudeMd } from './installer.js'
 import { detectStack } from './detect.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
 
@@ -146,7 +146,7 @@ async function main(): Promise<void> {
   }
 
   // 8. Summary
-  const counts = { plugin: 0, skill: 0, mcp: 0 }
+  const counts = { plugin: 0, skill: 0, mcp: 0, local: 0 }
   for (const it of toInstall) counts[it.method]++
   const baseruleLine = wantBaserules ? `\n  base rules: ${baseruleFiles.join(', ')}` : ''
   const guardrailLine = guardrailFiles.length > 0 ? `\n  guardrails: ${guardrailFiles.join(', ')}` : ''
@@ -154,7 +154,7 @@ async function main(): Promise<void> {
     (wantWorkflows ? '\n  workflows: .claude/workflows/' : '')
   const extras = (wantBaserules ? 1 : 0) + (guardrailFiles.length > 0 ? 1 : 0) + (wantLocalSkills ? 1 : 0) + (wantWorkflows ? 1 : 0)
   note(
-    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs${baseruleLine}${guardrailLine}${localLine}\n` +
+    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs, ${counts.local} locais${baseruleLine}${guardrailLine}${localLine}\n` +
       toInstall.map((it) => `  - ${it.label}`).join('\n'),
     `${toInstall.length + extras} itens`
   )
@@ -177,6 +177,7 @@ async function main(): Promise<void> {
     try {
       if (item.method === 'plugin') installPlugin(item.plugin!, projectDir)
       else if (item.method === 'mcp') installMcp(item.mcp!, projectDir)
+      else if (item.method === 'local') installLocalPlugin(item.local!, projectDir, TOOL_ROOT)
       else await installSkill(item.skill!, projectDir)
       results.push({ label: item.label, success: true })
       s.stop(`[${i + 1}/${total}] OK ${item.label}`)
