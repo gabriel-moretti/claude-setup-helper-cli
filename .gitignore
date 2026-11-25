@@ -5,3 +5,6 @@ dist/
 # Bytecode Python gerado ao rodar os scripts/testes do quality-harness
 __pycache__/
 *.pyc
+
+# Worktrees temporários criados por agentes/workflows do Claude Code
+/.claude/worktrees/
