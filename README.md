@@ -19,8 +19,9 @@
 
 [![Node 22+](https://img.shields.io/badge/node-22%2B-43a047?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![Testes](https://img.shields.io/badge/testes-21%20passando-2e7d32?style=flat-square&logo=checkmarx&logoColor=white)](./test)
+[![Testes](https://img.shields.io/badge/testes-83%20passando-2e7d32?style=flat-square&logo=checkmarx&logoColor=white)](./test)
 [![Cobertura](https://img.shields.io/badge/cobertura-99%25%20linhas-00897b?style=flat-square)](./test)
+[![Python](https://img.shields.io/badge/python-3.11%2B%20(opcional)-3776ab?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-546e7a?style=flat-square)](./LICENSE)
 
 </div>
@@ -33,6 +34,35 @@ Alternando entre frontends TypeScript, APIs Python, apps Flutter, código Swift,
 
 `claude-setup-helper` é uma CLI interativa pessoal que instala as skills, plugins, servidores MCP, guardrails, hooks e base rules certas para o seu stack atual. **Tudo vai para a pasta `.claude/` do projeto.** Nada toca o seu `~/.claude/` global.
 
+E quando o repositório também precisa de padrão de engenharia — lefthook, CI com checks obrigatórios, SemVer, CHANGELOG, gitmoji, rulesets — o CLI prepara o **quality-harness** da DeltaPag e deixa o Claude terminar o trabalho.
+
+---
+
+## Novidades
+
+### 🧰 Quality harness integrado
+
+Nova etapa opcional que prepara o [quality-harness](assets/quality-harness/SKILL.md) no repositório:
+
+- **Detecção de módulos** — 13 módulos opcionais (Next.js, NestJS, FastAPI, Flutter, PHP, AWS, Azure, Terraform, GitHub, contratos de API, banco/migrations, observabilidade, QA/E2E) são detectados no repo e pré-marcados, somados ao que você escolheu nas etapas anteriores.
+- **Python quando houver, TypeScript quando não** — com Python ≥ 3.11, usa os próprios scripts do harness (`detect_stacks.py --json`, `apply_modules.py`). Sem Python, cai num detector em TypeScript e grava só `.github/standards.json`. O setup nunca falha por isso.
+- **Divisão clara de trabalho** — o CLI instala o skill e os módulos; o core, o questionário de padrões, o RETROFIT em etapas e a governança ficam com o skill. No fim, o CLI diz o próximo passo: `/quality-harness` no Claude.
+
+Detalhes em [Quality harness](#quality-harness).
+
+### 🐛 Correções no harness
+
+- Os validadores de `.github/scripts/` agora são `.cjs`. Antes, quebravam em qualquer repo cujo `package.json` tem `"type": "module"` (comum em Next.js) — e com eles os checks `ci-ok`, `conventions` e `standards`.
+- A detecção ignora `.claude/`, para o skill instalado não disparar módulos falsos.
+
+### 📜 Base rule de commits mais rígida
+
+`git-commits.md` agora proíbe atribuição de IA em commits e PRs (trailers `Co-Authored-By` de ferramentas de IA, linhas "Generated with ...") e prefixos de branch de IA (`claude/`, `copilot/`, `cursor/`, `codex/`) — alinhado com o hook `commit-msg` do harness.
+
+### 🔍 Detecção automática do stack
+
+Antes do primeiro menu, o CLI lê os manifests do projeto (`package.json`, `pyproject.toml`, `pubspec.yaml`, `Package.swift`, `cdk.json`, `supabase/`…) e já pré-seleciona linguagens, frameworks, DevOps e plataformas Flutter. Você só confirma.
+
 ---
 
 ## Funcionalidades
@@ -40,6 +70,7 @@ Alternando entre frontends TypeScript, APIs Python, apps Flutter, código Swift,
 |  |  |
 |---|---|
 | 🎛️ &nbsp;**TUI bonito** | Menus via `@clack/prompts`, agrupados por stack, spinner animado por instalação |
+| 🔍 &nbsp;**Detecção do stack** | Lê os manifests do projeto e pré-seleciona as opções — você só confirma |
 | 📦 &nbsp;**Escopo por projeto** | Skills, plugins, MCPs — tudo em `.claude/`. Zero contaminação entre projetos |
 | 🧠 &nbsp;**Skills via GitHub** | Busca tarballs diretamente dos repos de origem, extrai para `.claude/skills/` |
 | 🔌 &nbsp;**Plugins com escopo** | `claude plugin install --scope project` — não é instalação global |
@@ -49,6 +80,7 @@ Alternando entre frontends TypeScript, APIs Python, apps Flutter, código Swift,
 | 🧰 &nbsp;**Quality harness opcional** | Detecta os módulos do repo e pré-seleciona os que se aplicam; o skill faz o resto |
 | 📋 &nbsp;**CLAUDE.md idempotente** | Cria ou faz append de imports `@path` — nunca duplica |
 | 🎭 &nbsp;**Hooks de qualidade** | Gates de PreToolUse, linters de PostToolUse, sons de meme opcionais |
+| 🤖 &nbsp;**Skills e workflows locais** | `audit-rules`, `emojicommit`, `parallel-plan` e workflows multiagente (security-scan, perf-validate, uiux-audit…) |
 | 💪 &nbsp;**Resiliente a erros** | Uma falha não aborta o resto; resumo completo no final |
 
 ---
@@ -57,7 +89,7 @@ Alternando entre frontends TypeScript, APIs Python, apps Flutter, código Swift,
 
 ```bash
 # Clone em algum lugar permanente
-git clone https://github.com/gabrielmoretti/claude-setup-helper.git ~/claude-setup-helper
+git clone https://github.com/gabriel-moretti/claude-setup-helper-cli.git ~/claude-setup-helper
 cd ~/claude-setup-helper
 
 # Instale as dependências e faça o build
@@ -97,6 +129,9 @@ claude-setup
   │                                                                  │
   └──────────────────────────────────────────────────────────────────┘
 
+  ◇  Stack detectada
+  │  typescript, nextjs, supabase
+
   ◆  Linguagens
   │  ◼ TypeScript   ◼ Python   ◻ Flutter   ◻ Swift
 
@@ -121,16 +156,28 @@ claude-setup
   ◆  DevOps
   │  ◼ AWS   ◼ Supabase
 
+  ◆  Instalar quality-harness (padrão de repo: lefthook, CI, SemVer, gitmoji)?
+  │  ● Sim  ○ Não
+
+  ◆  Harness — módulos (pré-marcados pela detecção):
+  │  ◼ github   ◼ nextjs   ◼ aws   ◼ database   ◼ qa-e2e   ◻ observability   ◻ api-contracts …
+
   ◆  Extras
   │  ◼ Firecrawl   ◻ Chrome DevTools   ◻ Jupyter   ◻ awesome-design
 
   ◆  Instalar hooks de qualidade duvidosa?
   │  ○ Sim (com sons)   ● Sim (sem sons)   ○ Não
 
-  ◆  Instalar baserules?
+  ◆  Adicionar Base Rules?
   │  ● Sim  ○ Não
 
-  ◆  Instalar guardrails?
+  ◆  Adicionar skills locais (audit-rules, emojicommit, parallel-plan)?
+  │  ● Sim  ○ Não
+
+  ◆  Adicionar workflows (security-scan, perf-validate, uiux-audit, ...)?
+  │  ● Sim  ○ Não
+
+  ◆  Adicionar Guardrails?
   │  ● Sim  ○ Não
 
   ◆  Instalar em: ~/projetos/meu-app-nextjs?
@@ -146,11 +193,16 @@ claude-setup
   ✔  aws-core instalado
   ✔  supabase instalado
   ✔  firecrawl instalado
-  ✔  Guardrails instalados (frontend, backend, nextjs-fullstack, aws-cost, aws-security, supabase)
-  ✔  Baserules instaladas
   ✔  Hooks instalados
+  ✔  Base rules instaladas
+  ✔  Skills locais instaladas (audit-rules, emojicommit, parallel-plan)
+  ✔  Workflows instalados (5)
+  ✔  Guardrails instalados (frontend, backend, nextjs-fullstack, aws-cost, aws-security, supabase)
+  ✔  quality-harness → .claude/skills/quality-harness/
+  ✔  Módulos → .github/standards.json, assets e .mcp.json
   ✔  CLAUDE.md atualizado
 
+  ●  Próximo passo: rode /quality-harness no Claude para instalar o core.
   ◇  Pronto — .claude/ está configurado. Abra o Claude Code e trabalhe.
 ```
 
@@ -256,6 +308,7 @@ claude-setup-helper/
 ├── src/
 │   ├── index.ts           ← fluxo principal, menus @clack/prompts, resolveGuardrails()
 │   ├── catalog.ts         ← todas as skills / plugins / MCPs definidos aqui
+│   ├── detect.ts          ← detecção do stack pelos manifests (pré-seleção dos menus)
 │   ├── installer.ts       ← installSkill / installPlugin / installMcp
 │   │                         installGuardrails / installBaserules / installHooks
 │   │                         updateClaudeMd (append idempotente de @path)
@@ -265,16 +318,21 @@ claude-setup-helper/
 │   ├── header.ts          ← ASCII art CLAUDE (ciano) + SETUP (roxo)
 │   └── types.ts           ← CatalogItem, Category, SkillSource, …
 ├── assets/
+│   ├── baserules/         ← git-commits.md  ignore-files.md  language.md  security.md
 │   ├── guardrails/        ← arquivos .md copiados para .claude/guardrails/
+│   ├── hooks/             ← cinco scripts .sh + template hooks-settings.json
+│   ├── plugins/           ← plugins locais (jira-cards)
 │   ├── quality-harness/   ← skill copiado para .claude/skills/quality-harness/
-│   ├── baserules/         ← ignore-files.md  language.md  security.md
-│   └── hooks/             ← cinco scripts .sh + template hooks-settings.json
+│   ├── skills/            ← audit-rules, emojicommit, parallel-plan
+│   ├── sounds/            ← MP3s dos hooks
+│   └── workflows/         ← workflows multiagente copiados para .claude/workflows/
 └── test/
-    ├── catalog.test.ts    ←  7 testes  — integridade e forma do catálogo
-    ├── installer.test.ts  ← 13 testes  — funções de instalação + updateClaudeMd
-    ├── harness.test.ts    ← mapeamento de seleções, standards.json, validação e findPython
-    ├── harness-modules.test.ts ← detecção TS com fixtures temporárias
-    └── header.test.ts     ←  1 teste   — smoke test para saída do ASCII art
+    ├── catalog.test.ts         ← 14 testes — integridade e forma do catálogo
+    ├── detect.test.ts          ←  8 testes — detecção do stack pelos manifests
+    ├── installer.test.ts       ← 18 testes — funções de instalação + updateClaudeMd
+    ├── harness.test.ts         ← 28 testes — seleções → módulos, standards.json, findPython, apply (inclui teste com Python real)
+    ├── harness-modules.test.ts ← 14 testes — detecção TS com fixtures temporárias
+    └── header.test.ts          ←  1 teste  — smoke test para saída do ASCII art
 ```
 
 **Fluxo de instalação:**
@@ -380,17 +438,28 @@ npm run build
 npm test
 ```
 
-21 testes, zero dependências extras. Usa `node:test` + `node:assert` nativos do Node.  
+83 testes, zero dependências extras. Usa `node:test` + `node:assert` nativos do Node.  
 Cobertura obrigatória de **≥ 85%** em linhas, branches e funções.
 
 | Arquivo | Linhas | Branches | Funções |
 |---|---|---|---|
 | `catalog.ts` | 100% | 100% | 100% |
+| `detect.ts` | 100% | 83% | 100% |
+| `harness.ts` | 100% | 98% | 100% |
+| `harness-modules.ts` | 100% | 94% | 97% |
 | `header.ts` | 100% | 100% | 100% |
-| `installer.ts` | 96% | 93% | 92% |
-| **Total** | **99%** | **93%** | **98%** |
+| `installer.ts` | 97% | 95% | 95% |
+| **Total** | **99%** | **95%** | **98%** |
 
-> `skill-fetcher.ts` é excluído dos thresholds — faz chamadas de rede reais e pertence a testes de integração.
+> `skill-fetcher.ts` é excluído dos thresholds — faz chamadas de rede reais e pertence a testes de integração.  
+> O teste de integração com Python real (`detect_stacks.py --json`) é pulado automaticamente quando não há Python ≥ 3.11.
+
+O skill do harness tem a própria suíte:
+
+```bash
+python3 -m unittest discover assets/quality-harness/scripts/tests   # detecção, apply e módulos
+cd assets/quality-harness/assets/core && node --test .github/scripts/test/*.test.cjs   # validadores
+```
 
 ---
 
