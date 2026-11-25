@@ -1,0 +1,22 @@
+# Copiar para .lefthook/python.yml
+# Monorepo: descomente `root` e aponte para a pasta do serviço.
+
+pre-commit:
+  commands:
+    python-ruff:
+      # root: "services/api/"
+      glob: "*.{py,pyi}"
+      run: uv run ruff check --fix {staged_files} && uv run ruff format {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    python-mypy:
+      # root: "services/api/"
+      glob: "*.{py,pyi}"
+      run: uv run mypy .
+    python-tests:
+      # root: "services/api/"
+      glob: "*.py"
+      # Código 5 = nenhum teste coletado (repo novo) — não bloqueia o push
+      run: uv run pytest -x -q -m "not slow" || [ $? -eq 5 ]

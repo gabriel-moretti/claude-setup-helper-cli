@@ -1,0 +1,12 @@
+{
+  "name": "🔐 Bloqueio de arquivos sensíveis",
+  "target": "push",
+  "enforcement": "active",
+  "bypass_actors": [{ "actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "always" }],
+  "conditions": { "repository_name": { "include": ["~ALL"], "exclude": [], "protected": false } },
+  "rules": [
+    { "type": "file_path_restriction", "parameters": { "restricted_file_paths": ["**/.env", "**/.env.*", "**/id_rsa", "**/id_ed25519", "**/*.tfstate"] } },
+    { "type": "file_extension_restriction", "parameters": { "restricted_file_extensions": [".pem", ".key", ".p12", ".pfx", ".jks", ".keystore"] } },
+    { "type": "max_file_size", "parameters": { "max_file_size": 10 } }
+  ]
+}

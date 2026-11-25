@@ -1,0 +1,13 @@
+{
+  "name": "🔖 Formato de tags (SemVer)",
+  "target": "tag",
+  "enforcement": "__ENFORCEMENT__",
+  "bypass_actors": [{ "actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "always" }],
+  "conditions": {
+    "ref_name": { "include": ["~ALL"], "exclude": [] },
+    "repository_name": { "include": ["~ALL"], "exclude": [], "protected": false }
+  },
+  "rules": [
+    { "type": "tag_name_pattern", "parameters": { "name": "vX.Y.Z · vX.Y.Z-rc.N · vX · vX.Y", "operator": "regex", "pattern": "^v(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*)(-rc\\.[1-9][0-9]*)?)?)?$", "negate": false } }
+  ]
+}

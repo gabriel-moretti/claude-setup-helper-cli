@@ -1,0 +1,10 @@
+# Copiar para .lefthook/docker.yml
+
+pre-commit:
+  commands:
+    hadolint:
+      glob: "{Dockerfile,Dockerfile.*,*.Dockerfile}"
+      # Usa o binário local se existir; senão a imagem oficial
+      run: >
+        if command -v hadolint >/dev/null 2>&1; then hadolint {staged_files};
+        else docker run --rm -v "$PWD:/w" -w /w hadolint/hadolint hadolint {staged_files}; fi

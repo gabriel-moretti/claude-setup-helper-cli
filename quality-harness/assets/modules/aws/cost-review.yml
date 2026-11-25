@@ -1,0 +1,62 @@
+name: "💸 Monthly AWS cost review"
+
+# Day 2 of each month: opens an issue with last month's cost by service vs. the month before,
+# plus the FinOps checklist. Needs vars.AWS_COST_ROLE_ARN (OIDC role with ai-readonly-cost-policy.json).
+on:
+  schedule:
+    - cron: "0 12 2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ vars.AWS_COST_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Cost by service
+        run: |
+          first_prev=$(date -u -d "$(date -u +%Y-%m-01) -1 month" +%Y-%m-01)
+          first_prev2=$(date -u -d "$first_prev -1 month" +%Y-%m-01)
+          first_this=$(date -u +%Y-%m-01)
+          q() { aws ce get-cost-and-usage --time-period Start=$1,End=$2 --granularity MONTHLY \
+                --metrics UnblendedCost --group-by Type=DIMENSION,Key=SERVICE \
+                --query 'ResultsByTime[0].Groups[].[Keys[0],Metrics.UnblendedCost.Amount]' --output text; }
+          q "$first_prev" "$first_this" > last.tsv
+          q "$first_prev2" "$first_prev" > before.tsv
+          python3 - "$first_prev" > table.md <<'PY'
+          import sys, csv
+          read = lambda f: {r[0]: float(r[1]) for r in csv.reader(open(f), delimiter="\t") if len(r) == 2}
+          last, before = read("last.tsv"), read("before.tsv")
+          rows = sorted(last.items(), key=lambda x: -x[1])[:15]
+          print(f"### Cost by service — {sys.argv[1][:7]} (USD, top 15)\n\n| Service | Month | Previous | Δ |\n|---|---:|---:|---:|")
+          for s, v in rows:
+              p = before.get(s, 0.0); d = v - p
+              print(f"| {s} | {v:,.2f} | {p:,.2f} | {'🔺' if d > 0.1 * max(p, 1) else ''}{d:+,.2f} |")
+          print(f"| **Total** | **{sum(last.values()):,.2f}** | **{sum(before.values()):,.2f}** | |")
+          PY
+      - name: Open issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          month=$(date -u -d "$(date -u +%Y-%m-01) -1 month" +%Y-%m)
+          cat table.md - > body.md <<'MD'
+
+          ### FinOps checklist
+          - [ ] Budgets and anomaly alerts: anything fired? root cause noted
+          - [ ] Services with 🔺 explained (growth vs. waste)
+          - [ ] Compute Optimizer / Cost Optimization Hub recommendations reviewed
+          - [ ] Untagged spend < 5% (cost allocation tags)
+          - [ ] Idle resources removed: unattached EBS/EIP, old snapshots, idle RDS/ALB/NAT
+          - [ ] Log retention and ingestion reviewed (CloudWatch Logs)
+          - [ ] Non-prod off-hours schedules working
+          - [ ] Savings Plans / Reserved coverage and utilization reviewed
+          MD
+          gh issue create -R "$GITHUB_REPOSITORY" --title "💸 AWS cost review — $month" --body-file body.md

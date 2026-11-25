@@ -1,0 +1,43 @@
+name: "📜 API contract"
+
+# Lint (Spectral) + breaking-change check (oasdiff) for contracts/**/openapi.yaml.
+# Intentional breaking change (new major): add the PR label "💥 breaking-api".
+on:
+  pull_request:
+    paths: ["contracts/**", ".spectral.yaml", ".github/workflows/api-contract.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - name: "🔍️ Spectral"
+        run: npx -y @stoplight/spectral-cli@6.17.1 lint "contracts/**/openapi.yaml" --fail-severity=error
+      - name: "💥 oasdiff breaking"
+        env:
+          BASE: ${{ github.base_ref }}
+          ALLOW: ${{ contains(github.event.pull_request.labels.*.name, '💥 breaking-api') }}
+        run: |
+          status=0
+          for spec in $(git ls-files 'contracts/**/openapi.yaml'); do
+            if ! git cat-file -e "origin/$BASE:$spec" 2>/dev/null; then echo "🆕 $spec (new)"; continue; fi
+            mkdir -p /tmp/base/$(dirname "$spec"); git show "origin/$BASE:$spec" > "/tmp/base/$spec"
+            echo "::group::$spec"
+            docker run --rm -v /tmp/base:/base:ro -v "$PWD":/head:ro tufin/oasdiff:v1.41.0 \
+              breaking "/base/$spec" "/head/$spec" --fail-on ERR || status=1
+            echo "::endgroup::"
+          done
+          if [ "$status" = 1 ] && [ "$ALLOW" != "true" ]; then
+            echo "::error::Breaking API change. Ship it as a new major (/v2) with deprecation of /v1, then label the PR '💥 breaking-api'."
+            exit 1
+          fi

@@ -1,0 +1,84 @@
+{
+  "name": "🛡️ main · em produção",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [
+    {
+      "actor_id": 1,
+      "actor_type": "OrganizationAdmin",
+      "bypass_mode": "pull_request"
+    }
+  ],
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "~DEFAULT_BRANCH"
+      ],
+      "exclude": []
+    },
+    "repository_property": {
+      "include": [
+        {
+          "name": "in_production",
+          "property_values": [
+            "true"
+          ],
+          "source": "custom"
+        }
+      ],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_linear_history"
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": true,
+        "require_last_push_approval": true,
+        "required_review_thread_resolution": true,
+        "allowed_merge_methods": [
+          "squash"
+        ]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          {
+            "context": "ci-ok",
+            "integration_id": 15368
+          },
+          {
+            "context": "standards",
+            "integration_id": 15368
+          },
+          {
+            "context": "conventions",
+            "integration_id": 15368
+          },
+          {
+            "context": "release-check",
+            "integration_id": 15368
+          },
+          {
+            "context": "pr-template",
+            "integration_id": 15368
+          }
+        ]
+      }
+    }
+  ]
+}

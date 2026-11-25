@@ -1,0 +1,58 @@
+# OpenTelemetry Collector (contrib distribution) — practices/observability.md
+# Receives OTLP from services, scrubs sensitive data, keeps every error/slow trace, samples the rest.
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+
+  # drop attributes that must never leave the service
+  attributes/drop-sensitive:
+    actions:
+      - { key: http.request.header.authorization, action: delete }
+      - { key: http.request.header.cookie, action: delete }
+      - { key: http.response.header.set-cookie, action: delete }
+      - { key: enduser.id, action: hash }
+
+  # mask values that look like card numbers, CPF or CNPJ in any remaining attribute
+  redaction:
+    allow_all_keys: true
+    blocked_values:
+      - "\\b(?:\\d[ -]?){13,19}\\b"                     # PAN-like digit runs
+      - "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b"           # CPF
+      - "\\b\\d{2}\\.?\\d{3}\\.?\\d{3}/?\\d{4}-?\\d{2}\\b"   # CNPJ
+    summary: info
+
+  tail_sampling:
+    decision_wait: 10s
+    policies:
+      - { name: errors, type: status_code, status_code: { status_codes: [ERROR] } }
+      - { name: slow, type: latency, latency: { threshold_ms: 1000 } }
+      - { name: baseline, type: probabilistic, probabilistic: { sampling_percentage: 10 } }
+
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: ${env:OTLP_BACKEND_ENDPOINT}     # vendor/backend (Grafana, Datadog, ADOT, Azure Monitor…)
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/drop-sensitive, redaction, tail_sampling, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/drop-sensitive, redaction, batch]
+      exporters: [otlphttp]

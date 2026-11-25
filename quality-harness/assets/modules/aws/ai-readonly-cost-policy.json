@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CostAndBillingRead",
+      "Effect": "Allow",
+      "Action": [
+        "ce:Get*", "ce:Describe*", "ce:List*",
+        "budgets:ViewBudget", "budgets:DescribeBudget*",
+        "pricing:DescribeServices", "pricing:GetAttributeValues", "pricing:GetProducts",
+        "compute-optimizer:Get*", "compute-optimizer:Describe*",
+        "cost-optimization-hub:Get*", "cost-optimization-hub:List*",
+        "savingsplans:Describe*", "freetier:Get*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

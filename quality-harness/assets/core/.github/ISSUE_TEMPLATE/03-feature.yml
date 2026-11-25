@@ -1,0 +1,112 @@
+name: "✨ Nova funcionalidade"
+description: "Tem uma ideia? Sugira (e, quem sabe, implemente 🙂)"
+title: "✨ feat: "
+labels: ["✨ feature", "🧐 triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Pedido de funcionalidade
+        Foque no **problema** primeiro — a melhor solução costuma aparecer depois 💡
+
+        > **Legenda** — campos com <kbd>*</kbd> são **obrigatórios**; *(opcional)* pode ficar em branco.
+
+  - type: checkboxes
+    id: pre-check
+    attributes:
+      label: "✅ Antes de abrir"
+      options:
+        - label: "🔍 Não existe issue ou discussão sobre esta ideia"
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "🤔 Qual problema isso resolve?"
+      placeholder: "Hoje, quando eu tento […], fico frustrado porque […]"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: "🎯 Solução proposta"
+      description: "Como você imagina que deveria funcionar? Inclua desvantagens que considerou."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: "🏷️ Tipo de melhoria"
+      options:
+        - "✨ Funcionalidade nova"
+        - "🚸 Melhoria de experiência (UX)"
+        - "🧑‍💻 Experiência de desenvolvimento (DX)"
+        - "👽️ Integração com serviço externo"
+        - "🏷️ Tipagem / API pública"
+        - "🌐 Internacionalização"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: "📈 Impacto para você"
+      options:
+        - "🌱 Seria legal ter"
+        - "⚡️ Importante — economiza bastante trabalho"
+        - "🚧 Bloqueante — não consigo usar sem isso"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "🔀 Alternativas consideradas (opcional)"
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: "✅ Critérios de aceite (opcional)"
+      placeholder: |
+        - [ ] Dado […], quando […], então […]
+    validations:
+      required: false
+
+  - type: textarea
+    id: adoption
+    attributes:
+      label: "📝 Documentação, adoção e migração (opcional)"
+      description: "Como as pessoas vão aprender a usar? Escreva um rascunho da doc se puder."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: "💥 Introduz breaking change? (opcional)"
+      options:
+        - "Não"
+        - "Sim"
+        - "Não sei"
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: "🍱 Mockups / exemplos (opcional)"
+      description: "Prints, wireframes, links de referência ou pseudo-código."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: "🙋 Contribuição (opcional)"
+      options:
+        - label: "Quero implementar esta funcionalidade"
+          required: false

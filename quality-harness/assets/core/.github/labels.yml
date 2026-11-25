@@ -1,0 +1,21 @@
+# Labels usadas pelos templates. Sincronize com: ./scripts/sync-labels.sh
+- { name: "🐛 bug",          color: "d73a4a", description: "Algo não funciona" }
+- { name: "💥 regressão",    color: "b60205", description: "Funcionava antes e quebrou" }
+- { name: "✨ feature",      color: "fbca04", description: "Nova funcionalidade" }
+- { name: "⚡️ performance",  color: "f9d0c4", description: "Lentidão ou consumo excessivo" }
+- { name: "📝 docs",         color: "0075ca", description: "Documentação" }
+- { name: "♻️ refactor",     color: "5319e7", description: "Refactor / débito técnico" }
+- { name: "💄 ui/ux",        color: "e99695", description: "Interface, UX e acessibilidade" }
+- { name: "🧐 triagem",      color: "ededed", description: "Aguardando triagem" }
+- { name: "🔒️ segurança",    color: "000000", description: "Segurança" }
+- { name: "🚧 em andamento", color: "c5def5", description: "Alguém está trabalhando nisso" }
+- { name: "🙋 ajuda bem-vinda", color: "008672", description: "Aceitamos contribuições" }
+- { name: "🌱 good first issue", color: "7057ff", description: "Boa para primeira contribuição" }
+- { name: "🗑️ wontfix",      color: "ffffff", description: "Não será feito" }
+- { name: "👥 duplicada",    color: "cfd3d7", description: "Já existe issue igual" }
+# --- PRs (aplicadas pelo workflow pr-template) ---
+- { name: "🚑️ hotfix",       color: "b60205", description: "Correção urgente em produção" }
+- { name: "🔖 release",      color: "0e8a16", description: "Preparação de versão" }
+- { name: "🔧 chore",        color: "c2e0c6", description: "Dependências, docs, CI, configuração" }
+- { name: "🔀 outros",       color: "bfdadc", description: "Branch fora dos prefixos padrão" }
+- { name: "🤖 ia-assistida", color: "8b5cf6", description: "PR com uso declarado de IA" }

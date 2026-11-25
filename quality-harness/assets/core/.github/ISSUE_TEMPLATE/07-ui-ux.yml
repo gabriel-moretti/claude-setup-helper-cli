@@ -1,0 +1,73 @@
+name: "💄 Interface / UX"
+description: "Problemas visuais, de usabilidade, responsividade ou acessibilidade ♿️"
+title: "💄 ui: "
+labels: ["💄 ui/ux", "🧐 triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 💄 Interface / UX
+        Uma imagem vale mais que mil palavras 📸 — os prints são obrigatórios aqui.
+
+        > **Legenda** — campos com <kbd>*</kbd> são **obrigatórios**; *(opcional)* pode ficar em branco.
+
+  - type: input
+    id: screen
+    attributes:
+      label: "📍 Tela / componente"
+      placeholder: "ex.: /checkout — botão de pagamento"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "🤔 O que está errado?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "📸 Prints ou gravação"
+      description: "Arraste imagens/vídeos. Se possível, mostre o antes e o esperado."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: devices
+    attributes:
+      label: "📱 Onde acontece (opcional)"
+      multiple: true
+      options:
+        - "🖥️ Desktop"
+        - "📱 Mobile"
+        - "📟 Tablet"
+        - "🌙 Modo escuro"
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: "🌐 Navegador / app e versão (opcional)"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: a11y
+    attributes:
+      label: "♿️ Acessibilidade (opcional)"
+      description: "Marque se o problema envolve:"
+      options:
+        - label: "Contraste de cores"
+        - label: "Navegação por teclado / foco"
+        - label: "Leitor de tela"
+        - label: "Tamanho de fonte / zoom"
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "💡 Proposta de solução (opcional)"
+    validations:
+      required: false

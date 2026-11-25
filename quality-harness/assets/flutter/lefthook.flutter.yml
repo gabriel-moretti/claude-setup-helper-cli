@@ -1,0 +1,22 @@
+# Copiar para .lefthook/flutter.yml
+# Monorepo: descomente `root` e aponte para a pasta do app.
+
+pre-commit:
+  commands:
+    dart-format:
+      # root: "apps/pos/"
+      glob: "*.dart"
+      exclude: '\.(g|freezed|mocks)\.dart$'
+      run: dart format {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    flutter-analyze:
+      # root: "apps/pos/"
+      glob: "*.dart"
+      run: flutter analyze --fatal-infos
+    flutter-tests:
+      # root: "apps/pos/"
+      glob: "*.dart"
+      run: flutter test

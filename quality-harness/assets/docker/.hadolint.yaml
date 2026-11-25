@@ -1,0 +1,8 @@
+failure-threshold: warning
+trustedRegistries:
+  - docker.io
+  - ghcr.io
+  - public.ecr.aws
+  # - <conta>.dkr.ecr.<região>.amazonaws.com
+ignored: []
+# Exceções pontuais: comentário `# hadolint ignore=DL3008` na linha, com motivo.

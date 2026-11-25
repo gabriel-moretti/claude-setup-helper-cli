@@ -1,0 +1,45 @@
+name: "🧭 Terraform drift"
+
+# Weekly read-only plan per environment. Exit code 2 = drift → opens (or comments on) an issue.
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [production]   # add test, sandbox
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1 — or azure/login@v2
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'sa-east-1' }}
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+      - id: plan
+        working-directory: infra/envs/${{ matrix.env }}
+        run: |
+          terraform init -input=false
+          set +e; terraform plan -input=false -no-color -lock=false -detailed-exitcode > plan.txt; code=$?; set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          [ "$code" = 1 ] && { cat plan.txt; exit 1; } || true
+      - if: steps.plan.outputs.code == '2'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ENV: ${{ matrix.env }}
+        run: |
+          title="🧭 Terraform drift — $ENV"
+          { echo "Infra differs from code in **$ENV**. Reconcile via PR (fix code or revert the manual change)."; echo; echo '```'; tail -n 80 infra/envs/$ENV/plan.txt; echo '```'; } > body.md
+          n=$(gh issue list -R "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue comment "$n" -R "$GITHUB_REPOSITORY" --body-file body.md;
+          else gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body-file body.md; fi

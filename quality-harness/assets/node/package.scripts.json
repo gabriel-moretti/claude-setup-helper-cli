@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint . && eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text",
+    "quality": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage"
+  }
+}

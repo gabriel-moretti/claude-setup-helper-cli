@@ -1,0 +1,38 @@
+name: "🚀 Deploy"
+
+# production ← tags vX.Y.Z (chamado pelo release.yml) · test/sandbox ← push na branch ou rc
+# As proteções (aprovação, branches/tags permitidas) ficam nos Environments do repositório.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      ref:
+        type: string
+        required: true
+  push:
+    branches: [test, sandbox]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: "🚀 ${{ inputs.environment || github.ref_name }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment || github.ref_name }}
+    concurrency:
+      group: deploy-${{ inputs.environment || github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - name: "🚀 Deploy"
+        env:
+          DEPLOY_ENV: ${{ inputs.environment || github.ref_name }}
+          DEPLOY_REF: ${{ inputs.ref || github.sha }}
+        run: ./scripts/deploy.sh "$DEPLOY_ENV" "$DEPLOY_REF"

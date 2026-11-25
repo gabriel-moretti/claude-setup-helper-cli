@@ -1,0 +1,6 @@
+# Squawk — Postgres migration linter (practices/database.md). https://squawkhq.com
+# Every rule on by default; exclude only with a reason.
+assume_in_transaction = true
+excluded_rules = [
+  "prefer-bigint-over-int",   # covered by naming/type review; remove this line to enforce
+]

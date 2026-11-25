@@ -1,0 +1,36 @@
+# 🪝 Hooks locais — barram o erro antes do push, em qualquer plano do GitHub.
+# Instalação: brew install lefthook (ou npm i -g lefthook / pipx install lefthook) e depois `lefthook install`.
+# Requer Node.js ≥ 20 (validadores em .github/scripts, sem dependências) e Python 3 (scripts/quality).
+# Mantenha em `extends` só os fragmentos das stacks presentes no repo (.lefthook/<stack>.yml).
+
+extends:
+  - .lefthook/node.yml
+  - .lefthook/python.yml
+  - .lefthook/flutter.yml
+  - .lefthook/docker.yml
+
+commit-msg:
+  commands:
+    gitmoji:
+      # remove trailers "Co-Authored-By: <ferramenta de IA>" e valida https://gitmoji.dev/specification
+      run: node .github/scripts/commit.js {1}
+
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      # gitleaks ≥ 8.19. Versões antigas: gitleaks protect --staged --redact
+      run: gitleaks git --pre-commit --staged --redact --no-banner
+    pan-scan:
+      run: python3 scripts/quality/scan_pan.py {staged_files}
+    editorconfig:
+      # brew install editorconfig-checker
+      run: editorconfig-checker {staged_files}
+      skip:
+        - merge
+        - rebase
+
+pre-push:
+  commands:
+    branch:
+      run: node .github/scripts/branch.js "$(git rev-parse --abbrev-ref HEAD)"

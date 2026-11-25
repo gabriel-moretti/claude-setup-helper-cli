@@ -1,0 +1,63 @@
+# 📝 Rascunho do CHANGELOG (https://common-changelog.org) a partir de commits gitmoji.
+#    Gera só a nova versão — revise o texto antes de commitar (Common Changelog pede curadoria):
+#    git cliff --unreleased --tag v1.2.0 --prepend CHANGELOG.md
+#    O link usa $GITHUB_REPOSITORY (ex.: export GITHUB_REPOSITORY=org/repo).
+
+[changelog]
+header = "# Changelog\n"
+body = """
+{%- set repo = get_env(name="GITHUB_REPOSITORY", default="OWNER/REPO") -%}
+{%- if version -%}
+## [{{ version | trim_start_matches(pat="v") }}](https://github.com/{{ repo }}/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{%- endif %}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for pass in ["breaking", "rest"] -%}
+{% for commit in commits -%}
+{%- set text = commit.message | split(pat="\n") | first | split(pat="§ ") | last -%}
+{%- set is_breaking = text is containing("**Breaking:**") or text is containing("(breaking):**") -%}
+{%- if (pass == "breaking" and is_breaking) or (pass == "rest" and not is_breaking) %}
+{%- if text is containing(" (#") -%}
+{%- set parts = text | split(pat=" (#") -%}
+{%- set num = parts | last | trim_end_matches(pat=")") %}
+- {{ parts | first | upper_first }} ([#{{ num }}](https://github.com/{{ repo }}/pull/{{ num }})) ({{ commit.author.name }})
+{%- else %}
+- {{ text | upper_first }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/{{ repo }}/commit/{{ commit.id }})) ({{ commit.author.name }})
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endfor %}
+{% endfor %}
+"""
+trim = true
+footer = ""
+# garante linha em branco antes da versão anterior ao usar --prepend
+postprocessors = [{ pattern = '\n*$', replace = "\n\n" }]
+
+[git]
+conventional_commits = false
+filter_unconventional = false
+sort_commits = "newest"
+tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+skip_tags = "-rc\\."
+
+# 1) intenção gitmoji → categoria Common Changelog (C=Changed A=Added R=Removed F=Fixed)
+# 2) escopo vira prefixo de subsistema em negrito: **auth:** / **auth (breaking):**
+commit_preprocessors = [
+  { pattern = '^(?:💥|:boom:)\s*', replace = "§C§ **Breaking:** " },
+  { pattern = '^(?:✨|:sparkles:|📈|:chart_with_upwards_trend:|🌐|:globe_with_meridians:|♿\x{FE0F}?|:wheelchair:|🔊|:loud_sound:|🚩|:triangular_flag_on_post:|💫|:dizzy:|🩺|:stethoscope:|✈\x{FE0F}?|:airplane:|🦺|:safety_vest:|➕|:heavy_plus_sign:)\s*', replace = "§A§ " },
+  { pattern = '^(?:🔥|:fire:|⚰\x{FE0F}?|:coffin:|➖|:heavy_minus_sign:|🔇|:mute:)\s*', replace = "§R§ " },
+  { pattern = '^(?:🐛|:bug:|🚑\x{FE0F}?|:ambulance:|🩹|:adhesive_bandage:|🔒\x{FE0F}?|:lock:|✏\x{FE0F}?|:pencil2:|🥅|:goal_net:)\s*', replace = "§F§ " },
+  { pattern = '^(?:⚡\x{FE0F}?|:zap:|♻\x{FE0F}?|:recycle:|💄|:lipstick:|⬆\x{FE0F}?|:arrow_up:|⬇\x{FE0F}?|:arrow_down:|📌|:pushpin:|🗃\x{FE0F}?|:card_file_box:|👽\x{FE0F}?|:alien:|🚚|:truck:|🏗\x{FE0F}?|:building_construction:|🛂|:passport_control:|🍱|:bento:|📝|:memo:|🗑\x{FE0F}?|:wastebasket:|🏷\x{FE0F}?|:label:|📱|:iphone:|🔍\x{FE0F}?|:mag:|👔|:necktie:|🧵|:thread:|📦\x{FE0F}?|:package:|📄|:page_facing_up:|💬|:speech_balloon:|🚸|:children_crossing:|⏪\x{FE0F}?|:rewind:)\s*', replace = "§C§ " },
+  { pattern = '^(§C§ )\*\*Breaking:\*\* \(([^)]+)\):?\s*', replace = "${1}**${2} (breaking):** " },
+  { pattern = '^(§[CARF]§ )\(([^)]+)\):?\s*', replace = "${1}**${2}:** " },
+  { pattern = '^(§[CARF]§ (?:\*\*[^*]+\*\* )?):\s*', replace = "${1}" },
+]
+# Só entram as 4 categorias; o resto (🎨 🚨 💚 👷 ✅ 🔀 🔖 🚧 🙈 💡 🔧 🔨…) é ruído para quem consome.
+commit_parsers = [
+  { message = "^§C§", group = "<!-- 0 -->Changed" },
+  { message = "^§A§", group = "<!-- 1 -->Added" },
+  { message = "^§R§", group = "<!-- 2 -->Removed" },
+  { message = "^§F§", group = "<!-- 3 -->Fixed" },
+  { message = ".*", skip = true },
+]

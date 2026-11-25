@@ -1,0 +1,24 @@
+# Copiar para .lefthook/node.yml
+# Monorepo: descomente `root` e aponte para a pasta do app.
+
+pre-commit:
+  commands:
+    node-biome-eslint:
+      # root: "apps/web/"
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      # Biome primeiro (formata), ESLint depois (só arquivos de código)
+      run: >
+        pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+        && (echo {staged_files} | tr ' ' '\n' | grep -E '\.(js|jsx|ts|tsx|mjs|cjs)$' | xargs -r pnpm eslint --fix --max-warnings=0)
+      stage_fixed: true
+
+pre-push:
+  commands:
+    node-typecheck:
+      # root: "apps/web/"
+      glob: "*.{ts,tsx}"
+      run: pnpm tsc --noEmit
+    node-tests:
+      # root: "apps/web/"
+      glob: "*.{js,jsx,ts,tsx}"
+      run: pnpm vitest run --changed --passWithNoTests

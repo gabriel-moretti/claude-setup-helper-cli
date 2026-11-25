@@ -1,0 +1,65 @@
+name: "⚡️ Performance"
+description: "Algo está lento, pesado ou consumindo recursos demais 🐢"
+title: "⚡️ perf: "
+labels: ["⚡️ performance", "🧐 triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚡️ Problema de performance
+        Números valem mais que adjetivos 📈 — traga medições sempre que puder.
+
+        > **Legenda** — campos com <kbd>*</kbd> são **obrigatórios**; *(opcional)* pode ficar em branco.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "🐢 O que está lento?"
+      description: "Operação, tela, endpoint ou comando afetado."
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: "📈 Medição atual"
+      description: "Tempo, memória, CPU, tamanho do bundle… e como foi medido."
+      placeholder: "build: 42s (hyperfine, 10 execuções) · RSS: 1.2 GB"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "👣 Como reproduzir / benchmark"
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "🧱 Ambiente"
+      value: |
+        - Versão:
+        - SO / hardware:
+        - Volume de dados:
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "🎯 Meta ou referência esperada (opcional)"
+      description: "Ex.: valor em versão anterior ou em ferramenta similar."
+    validations:
+      required: false
+
+  - type: textarea
+    id: profiling
+    attributes:
+      label: "🧐 Profiling / flamegraph (opcional)"
+      description: "Anexe arquivos ou prints do profiler."
+    validations:
+      required: false

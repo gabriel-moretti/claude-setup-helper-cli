@@ -1,0 +1,5 @@
+  - package-ecosystem: docker
+    directories: ["/", "/services/*", "/apps/*"]
+    schedule: { interval: weekly }
+    commit-message: { prefix: "⬆️" }
+    # target-branch: test

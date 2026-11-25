@@ -1,0 +1,27 @@
+# Padrão: very_good_analysis (rigoroso). Em RETROFIT de app grande,
+# troque por `package:flutter_lints/flutter.yaml` e suba depois.
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.mocks.dart"
+    - "lib/generated/**"
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    missing_required_param: error
+    invalid_annotation_target: ignore   # comum com freezed/json_serializable
+    todo: ignore
+
+linter:
+  rules:
+    avoid_print: true
+    prefer_final_locals: true
+    unawaited_futures: true
+    always_declare_return_types: true
+    # very_good_analysis exige doc em API pública; em app (não lib) costuma ser ruído:
+    public_member_api_docs: false

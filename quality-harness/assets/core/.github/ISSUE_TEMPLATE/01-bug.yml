@@ -1,0 +1,148 @@
+name: "🐛 Bug"
+description: "Algo não funciona como deveria? Conte pra gente 🤔"
+title: "🐛 bug: "
+labels: ["🐛 bug", "🧐 triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 Relato de bug
+        Obrigado por reportar! Quanto mais preciso o relato, mais rápido o conserto 🩹
+
+        > **Legenda** — campos com <kbd>*</kbd> são **obrigatórios**. Campos marcados *(opcional)* ajudam muito, mas podem ficar em branco.
+
+  - type: checkboxes
+    id: pre-check
+    attributes:
+      label: "✅ Antes de abrir"
+      options:
+        - label: "🔍 Busquei nas [issues existentes](../issues?q=is%3Aissue) e não encontrei uma igual"
+          required: true
+        - label: "⬆️ Reproduzi na versão mais recente"
+          required: true
+        - label: "🤝 Li e concordo com o Código de Conduta"
+          required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: "💥 Comportamento atual"
+      description: "O que acontece hoje? Seja claro e objetivo."
+      placeholder: "Ao clicar em X, a aplicação lança Y em vez de Z…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: "🎯 Comportamento esperado"
+      description: "O que deveria acontecer?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "👣 Passos para reproduzir"
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "🚑️ Severidade"
+      options:
+        - "🔥 Bloqueante — sem contorno, impede o uso"
+        - "🚑️ Crítico — afeta função principal"
+        - "🩹 Moderado — existe contorno"
+        - "🎨 Cosmético — visual / texto"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: "🔁 Frequência"
+      options:
+        - "Sempre"
+        - "Intermitente"
+        - "Aconteceu uma vez"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: "🔖 Versão"
+      placeholder: "ex.: v2.4.1 ou commit abc1234"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "🧱 Ambiente"
+      description: "SO, runtime, navegador, gerenciador de pacotes…"
+      value: |
+        - SO:
+        - Runtime / versão:
+        - Navegador (se aplicável):
+        - Gerenciador de pacotes:
+      render: markdown
+    validations:
+      required: true
+
+  - type: input
+    id: minimal-reproduction
+    attributes:
+      label: "🔗 Reprodução mínima (opcional)"
+      description: "Link para repositório, sandbox, REPL ou gist."
+      placeholder: "https://…"
+    validations:
+      required: false
+
+  - type: textarea
+    id: code
+    attributes:
+      label: "🧑‍💻 Código / configuração (opcional)"
+      description: "Trecho mínimo que dispara o problema. Formatado automaticamente."
+      render: js
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "🔊 Logs / stack trace (opcional)"
+      description: "Cole a saída relevante. ⚠️ Remova tokens, senhas e dados pessoais."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: "💡 Possível solução (opcional)"
+      description: "Tem um palpite de onde está o problema ou de como corrigir?"
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "📸 Contexto adicional / prints (opcional)"
+      description: "Arraste imagens ou vídeos para cá."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: "🙋 Contribuição (opcional)"
+      options:
+        - label: "Quero abrir um PR com a correção"
+          required: false

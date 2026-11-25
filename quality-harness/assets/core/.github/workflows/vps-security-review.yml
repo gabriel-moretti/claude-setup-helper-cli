@@ -1,0 +1,65 @@
+name: "🔒️ Revisão mensal de segurança (VPS)"
+
+# Projetos com infra.hosting = "vps" (só criticidade low) precisam de revisão de segurança todo mês.
+# No dia 1 abre uma issue com o checklist; se a do mês anterior ainda estiver aberta, ela é marcada como atrasada.
+on:
+  schedule:
+    - cron: "0 12 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  review:
+    name: "🔒️ Abrir revisão"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          sparse-checkout: .github
+      - id: cfg
+        run: node -e 'const s=require("./.github/scripts/lib/standards").load(); console.log("hosting="+s.infra.hosting)' >> "$GITHUB_OUTPUT"
+      - if: steps.cfg.outputs.hosting == 'vps'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MONTH=$(date -u +%Y-%m)
+          LABEL="🔒️ segurança"
+          gh label create "$LABEL" --color 000000 --force >/dev/null 2>&1 || true
+          for n in $(gh issue list --label "$LABEL" --state open --search "Revisão de segurança VPS in:title" --json number -q '.[].number'); do
+            gh issue comment "$n" --body "⏰ Revisão não concluída antes do novo ciclo ($MONTH). Prioridade alta."
+          done
+          if gh issue list --label "$LABEL" --state all --search "\"Revisão de segurança VPS — $MONTH\" in:title" --json number -q '.[0].number' | grep -q .; then
+            echo "ℹ️ revisão de $MONTH já existe"; exit 0; fi
+          gh issue create --label "$LABEL" --title "🔒️ Revisão de segurança VPS — $MONTH" --body-file - <<'MD'
+          Revisão mensal obrigatória para projetos hospedados em VPS. Anexe evidências (prints, saídas de comando) em cada item.
+
+          ### 🩹 Sistema e pacotes
+          - [ ] Atualizações de segurança do SO aplicadas (`apt list --upgradable` vazio) e reboot se o kernel mudou
+          - [ ] Imagens de container reconstruídas sobre a base mais recente; dependências com CVE crítica corrigidas
+          - [ ] Relatório do [Lynis](https://cisofy.com/lynis/) (`lynis audit system`) sem achados novos de severidade alta
+
+          ### 🔐 Acesso
+          - [ ] SSH só por chave, sem login de root, sem senha (`sshd -T | grep -E 'permitrootlogin|passwordauthentication'`)
+          - [ ] Lista de usuários e chaves autorizadas revisada; ex-membros removidos
+          - [ ] MFA ativo no painel do provedor da VPS
+
+          ### 🧱 Rede
+          - [ ] Firewall com política deny-by-default; só portas necessárias abertas (scan externo com `nmap` anexado)
+          - [ ] fail2ban (ou equivalente) ativo e com bans recentes revisados
+          - [ ] Certificados TLS com mais de 30 dias de validade
+
+          ### 💾 Dados
+          - [ ] Backup do mês executado **e restauração testada** em outro ambiente
+          - [ ] Segredos fora do repositório e fora de imagens; rotação dos que vencem no mês
+
+          ### 🔊 Monitoramento
+          - [ ] Logs de autenticação e de aplicação revisados (tentativas de acesso, erros 5xx anormais)
+          - [ ] Alertas de disponibilidade e disco funcionando (teste de disparo)
+
+          ### 🎚️ Criticidade
+          - [ ] O projeto continua de **baixa criticidade** e fora do escopo PCI DSS. Se mudou, abrir migração para AWS/Azure.
+          MD

@@ -1,0 +1,7 @@
+  - package-ecosystem: npm        # pnpm usa o ecossistema npm
+    directories: ["/", "/apps/*", "/packages/*"]
+    schedule: { interval: weekly }
+    commit-message: { prefix: "⬆️" }
+    groups:
+      minor-and-patch: { update-types: ["minor", "patch"] }
+    # target-branch: test

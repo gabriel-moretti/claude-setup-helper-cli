@@ -1,0 +1,177 @@
+{
+  "nextjs": {
+    "depends": [
+      "node"
+    ],
+    "detect": {
+      "files": [
+        "next.config.js",
+        "next.config.mjs",
+        "next.config.ts"
+      ],
+      "packageDeps": [
+        "next"
+      ]
+    }
+  },
+  "nestjs": {
+    "depends": [
+      "node"
+    ],
+    "detect": {
+      "files": [
+        "nest-cli.json"
+      ],
+      "packageDeps": [
+        "@nestjs/core"
+      ]
+    }
+  },
+  "fastapi": {
+    "depends": [
+      "python"
+    ],
+    "detect": {
+      "pyprojectDeps": [
+        "fastapi"
+      ]
+    }
+  },
+  "flutter": {
+    "depends": [
+      "flutter"
+    ],
+    "detect": {
+      "pubspecDeps": [
+        "flutter"
+      ],
+      "dirs": [
+        "android",
+        "ios"
+      ]
+    }
+  },
+  "php": {
+    "depends": [],
+    "detect": {
+      "files": [
+        "composer.json"
+      ]
+    }
+  },
+  "terraform": {
+    "depends": [],
+    "detect": {
+      "globs": [
+        "infra/**/*.tf",
+        "**/*.tf"
+      ]
+    }
+  },
+  "aws": {
+    "depends": [
+      "github"
+    ],
+    "detect": {
+      "files": [
+        "cdk.json"
+      ],
+      "tfProviders": [
+        "hashicorp/aws"
+      ],
+      "standards": {
+        "infra.hosting": "aws"
+      }
+    }
+  },
+  "azure": {
+    "depends": [
+      "terraform",
+      "github"
+    ],
+    "detect": {
+      "tfProviders": [
+        "hashicorp/azurerm"
+      ],
+      "standards": {
+        "infra.hosting": "azure"
+      }
+    }
+  },
+  "github": {
+    "depends": [],
+    "detect": {
+      "dirs": [
+        ".github"
+      ]
+    },
+    "default": true
+  },
+  "api-contracts": {
+    "depends": [],
+    "detect": {
+      "globs": [
+        "contracts/**/openapi.yaml",
+        "**/openapi.{yaml,yml,json}",
+        "**/asyncapi.{yaml,yml}"
+      ],
+      "packageDeps": [
+        "@nestjs/swagger"
+      ],
+      "pyprojectDeps": [
+        "fastapi"
+      ]
+    }
+  },
+  "database": {
+    "depends": [],
+    "detect": {
+      "standards": {
+        "database.engine": "*"
+      },
+      "globs": [
+        "**/prisma/schema.prisma",
+        "**/alembic.ini",
+        "**/migrations/**",
+        "**/drizzle.config.*"
+      ]
+    }
+  },
+  "observability": {
+    "depends": [],
+    "detect": {
+      "standards": {
+        "in_production": true
+      },
+      "packageDeps": [
+        "@opentelemetry/sdk-node",
+        "@sentry/nextjs"
+      ],
+      "pyprojectDeps": [
+        "opentelemetry-sdk"
+      ]
+    },
+    "recommendedWhen": "any deployable service in production"
+  },
+  "qa-e2e": {
+    "depends": [],
+    "detect": {
+      "files": [
+        "playwright.config.ts",
+        "playwright.config.js"
+      ],
+      "dirs": [
+        "e2e",
+        "integration_test",
+        ".maestro"
+      ]
+    },
+    "recommendedWhen": "any repo with user journeys"
+  },
+  "_baseLayers": [
+    "node",
+    "python",
+    "flutter",
+    "docker"
+  ]
+}

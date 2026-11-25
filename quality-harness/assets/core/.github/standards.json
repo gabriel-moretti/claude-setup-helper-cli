@@ -1,0 +1,27 @@
+{
+  "code": {
+    "language": "en",
+    "enforcement": "error",
+    "domainTerms": ["pix", "boleto", "cnpj", "cpf", "cep", "nsu", "ted", "rav", "nfe", "nfse", "icms", "pis", "cofins", "cnab", "sped", "mei"],
+    "ignore": ["**/node_modules/**", "**/vendor/**", "**/generated/**", "**/*.g.dart", "**/*.freezed.dart", "**/*.min.js", ".github/scripts/lib/language.js", ".github/scripts/test/**"]
+  },
+  "docs": {
+    "languages": ["pt-BR"]
+  },
+  "ai": {
+    "language": "en",
+    "files": ["AGENTS.md", "CLAUDE.md", ".claude/**", "**/SKILL.md", ".cursor/rules/**", ".github/copilot-instructions.md", "prompts/**"]
+  },
+  "infra": {
+    "criticality": "medium",
+    "hosting": "aws",
+    "iac": "terraform",
+    "pciScope": false,
+    "exceptionAdr": null
+  },
+  "database": {
+    "engine": null,
+    "orm": null,
+    "rawSqlAdr": null
+  }
+}

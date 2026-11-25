@@ -1,0 +1,69 @@
+name: "🗃️ Database"
+
+# Ephemeral Postgres → migrations from zero → schema drift check → Squawk on changed SQL.
+# Set the ORM block that matches .github/standards.json → database.orm; delete the others.
+on:
+  pull_request:
+    paths: ["**/migrations/**", "**/prisma/**", "**/alembic/**", "**/schema*", "**/models/**", ".github/workflows/database.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: app }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U app" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://app:app@localhost:5432/app
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      # ── Prisma
+      - if: hashFiles('**/prisma/schema.prisma') != ''
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - if: hashFiles('**/prisma/schema.prisma') != ''
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma migrate deploy
+          pnpm exec prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "$DATABASE_URL" --exit-code
+
+      # ── Alembic (SQLAlchemy)
+      - if: hashFiles('**/alembic.ini') != ''
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - if: hashFiles('**/alembic.ini') != ''
+        run: |
+          uv sync --locked
+          uv run alembic upgrade head
+          uv run alembic check
+          uv run alembic downgrade base && uv run alembic upgrade head   # migrations reversible in CI
+
+      # ── Django
+      # - run: uv run python manage.py migrate && uv run python manage.py makemigrations --check --dry-run
+
+      - name: "🦑 Squawk on changed SQL"
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          files=$(git diff --name-only --diff-filter=AM "origin/$BASE...HEAD" -- '*.sql')
+          if [ -z "$files" ] && [ -f alembic.ini ]; then
+            # offline SQL for the new Alembic revisions only: from the oldest new file's down_revision to head
+            first=$(git diff --name-only --diff-filter=A "origin/$BASE...HEAD" -- 'alembic/versions/*.py' | head -1)
+            if [ -n "$first" ]; then
+              from=$(sed -nE "s/^down_revision[^=]*= *['\"]([^'\"]+)['\"].*/\1/p" "$first")
+              uv run alembic upgrade "${from:-base}:head" --sql > /tmp/new.sql && files=/tmp/new.sql
+            fi
+          fi
+          [ -z "$files" ] && { echo "no new SQL"; exit 0; }
+          npx -y squawk-cli@2.74.0 --config .squawk.toml $files

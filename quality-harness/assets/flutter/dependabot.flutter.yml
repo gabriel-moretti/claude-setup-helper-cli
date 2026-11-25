@@ -1,0 +1,5 @@
+  - package-ecosystem: pub
+    directories: ["/", "/mobile/*", "/apps/*"]
+    schedule: { interval: weekly }
+    commit-message: { prefix: "⬆️" }
+    # target-branch: test

@@ -1,0 +1,300 @@
+name: "✅ CI"
+
+# 🎨 formatação · 🚨 lint · 🏷️ tipos · 🧪 testes com cobertura — por projeto detectado (node/pnpm, python/uv, flutter, php/composer).
+# 🐳 contêineres (hadolint + trivy) · 🧹 higiene (editorconfig, actionlint) · 🔐 segurança (gitleaks + PAN).
+# Cobertura mínima: 75% (test/sandbox/branches) · 85% para PRs e pushes em main (produção).
+# Enquanto vars.IN_PRODUCTION != 'true', falhas de qualidade viram aviso e não bloqueiam (fase pré-produção).
+# 🔐 Segurança (segredos e números de cartão) bloqueia SEMPRE, inclusive em pré-produção e em rascunhos.
+# ⏱️ Economia de minutos: em PR só roda os projetos alterados, pula rascunhos e docs-only, cancela execuções antigas.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main, test, sandbox]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  detect:
+    name: "🔍️ Projetos"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.pull_request.draft != true
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+      containers: ${{ steps.c.outputs.containers }}
+      min: ${{ steps.t.outputs.min }}
+      blocking: ${{ steps.t.outputs.blocking }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+      - id: p
+        env:
+          BASE: ${{ github.base_ref }}
+        run: node .github/scripts/projects.js ${BASE:+--base "$BASE"} >> "$GITHUB_OUTPUT"
+      - id: c
+        name: "🐳 Contêineres"
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          node - <<'JS' >> "$GITHUB_OUTPUT"
+          const { execSync } = require('child_process');
+          const sh = (c) => execSync(c, { encoding: 'utf8' }).split('\n').filter(Boolean);
+          const files = sh('git ls-files').filter((f) => /(^|\/)(Dockerfile(\.[^/]+)?|[^/]+\.Dockerfile)$/.test(f));
+          let list = files.map((f) => ({ file: f, dir: f.includes('/') ? f.slice(0, f.lastIndexOf('/')) : '.' }));
+          const base = process.env.BASE;
+          if (base && list.length) {
+            const changed = sh(`git diff --name-only origin/${base}...HEAD`);
+            const docs = /(\.md$|^docs\/|^\.github\/(ISSUE_TEMPLATE|PULL_REQUEST_TEMPLATE)\/)/;
+            const global = changed.some((f) => f === '.github/workflows/ci.yml' || f === '.hadolint.yaml');
+            if (!global) list = list.filter((c) => changed.some((f) => !docs.test(f) && (c.dir === '.' || f.startsWith(c.dir + '/'))));
+          }
+          console.log(`containers=${JSON.stringify(list)}`);
+          console.error(`🐳 ${list.length} Dockerfile(s): ${list.map((c) => c.file).join(', ') || 'nenhum'}`);
+          JS
+      - id: t
+        env:
+          TARGET: ${{ github.base_ref || github.ref_name }}
+          MIN: ${{ vars.COVERAGE_MIN || '75' }}
+          MIN_PROD: ${{ vars.COVERAGE_MIN_PROD || '85' }}
+          IN_PRODUCTION: ${{ vars.IN_PRODUCTION || 'false' }}
+        run: |
+          if [ "$TARGET" = "main" ]; then echo "min=$MIN_PROD" >> "$GITHUB_OUTPUT"; else echo "min=$MIN" >> "$GITHUB_OUTPUT"; fi
+          echo "blocking=$IN_PRODUCTION" >> "$GITHUB_OUTPUT"
+          echo "🎯 destino: $TARGET · cobertura mínima: $([ "$TARGET" = main ] && echo $MIN_PROD || echo $MIN)% · bloqueante: $IN_PRODUCTION"
+
+  quality:
+    name: "${{ matrix.stack }} · ${{ matrix.dir }}"
+    needs: detect
+    if: needs.detect.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # ── Node · pnpm ─ scripts esperados no package.json: format:check, lint, test:coverage (→ coverage/lcov.info); typecheck opcional
+      - if: matrix.stack == 'node'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          package_json_file: ${{ matrix.dir }}/package.json
+      - if: matrix.stack == 'node'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: lts/*
+          cache: pnpm
+          cache-dependency-path: ${{ matrix.dir }}/pnpm-lock.yaml
+      - if: matrix.stack == 'node'
+        run: pnpm install --frozen-lockfile
+      - if: matrix.stack == 'node'
+        name: "🎨 Formatação"
+        run: pnpm run format:check
+      - if: matrix.stack == 'node'
+        name: "🚨 Lint"
+        run: pnpm run lint
+      - if: matrix.stack == 'node'
+        name: "🏷️ Tipos"
+        run: pnpm run --if-present typecheck
+      - if: matrix.stack == 'node'
+        name: "🧪 Testes"
+        run: pnpm run test:coverage
+      - if: matrix.stack == 'node'
+        name: "🛡️ Dependências (aviso)"
+        continue-on-error: true
+        run: pnpm audit --prod --audit-level=high
+
+      # ── Python · uv + Ruff + mypy + pytest-cov
+      - if: matrix.stack == 'python'
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+      - if: matrix.stack == 'python'
+        run: uv sync --locked
+      - if: matrix.stack == 'python'
+        name: "🎨 Formatação"
+        run: uv run ruff format --check .
+      - if: matrix.stack == 'python'
+        name: "🚨 Lint"
+        run: uv run ruff check .
+      - if: matrix.stack == 'python'
+        name: "🏷️ Tipos"
+        run: |
+          if [ -f mypy.ini ] || grep -q '^\[tool\.mypy\]' pyproject.toml; then uv run mypy .
+          else echo "::notice::mypy não configurado em ${{ matrix.dir }} — etapa pulada"; fi
+      - if: matrix.stack == 'python'
+        name: "🧪 Testes"
+        run: uv run pytest --cov --cov-report=term --cov-report=lcov:coverage/lcov.info
+      - if: matrix.stack == 'python'
+        name: "🛡️ Dependências (aviso)"
+        continue-on-error: true
+        run: |
+          uv export --locked --no-emit-project --format requirements-txt > "$RUNNER_TEMP/req.txt"
+          uvx pip-audit -r "$RUNNER_TEMP/req.txt"
+
+      # ── Flutter · dart format + flutter analyze + flutter test
+      - if: matrix.stack == 'flutter'
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          cache: true
+      - if: matrix.stack == 'flutter'
+        run: flutter pub get
+      - if: matrix.stack == 'flutter'
+        name: "🎨 Formatação"
+        run: dart format --output=none --set-exit-if-changed .
+      - if: matrix.stack == 'flutter'
+        name: "🚨 Lint e tipos"
+        run: flutter analyze --fatal-infos
+      - if: matrix.stack == 'flutter'
+        name: "🧪 Testes"
+        run: flutter test --coverage
+
+      # ── PHP · Composer + PHP-CS-Fixer/Pint + PHPStan + PHPUnit/Pest (módulo php: references/stacks/php.md)
+      - if: matrix.stack == 'php'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ vars.PHP_VERSION || '8.3' }}   # igual ao "php" do composer.json
+          coverage: pcov
+          tools: composer
+      - if: matrix.stack == 'php'
+        name: "📦 Composer"
+        run: |
+          composer validate --strict
+          composer install --no-interaction --no-progress --prefer-dist
+      - if: matrix.stack == 'php'
+        name: "🎨 Formatação"
+        run: |
+          if [ -x vendor/bin/pint ]; then vendor/bin/pint --test
+          else vendor/bin/php-cs-fixer fix --dry-run --diff; fi
+      - if: matrix.stack == 'php'
+        name: "🚨 Lint e tipos (PHPStan)"
+        run: vendor/bin/phpstan analyse --no-progress
+      - if: matrix.stack == 'php'
+        name: "🧪 Testes"
+        run: |
+          if [ -x vendor/bin/pest ]; then vendor/bin/pest --coverage-clover coverage/clover.xml
+          else vendor/bin/phpunit --coverage-clover coverage/clover.xml; fi
+      - if: matrix.stack == 'php'
+        name: "🛡️ Dependências"
+        run: composer audit
+
+      # ── Gate único de cobertura: coverage.js — lcov (node/python), Clover (php); Flutter passa pelo wrapper que remove código gerado
+      - if: matrix.stack == 'node' || matrix.stack == 'python'
+        name: "📊 Cobertura ≥ ${{ needs.detect.outputs.min }}%"
+        run: node "$GITHUB_WORKSPACE/.github/scripts/coverage.js" coverage/lcov.info --min "${{ needs.detect.outputs.min }}" --label "${{ matrix.dir }}"
+      - if: matrix.stack == 'php'
+        name: "📊 Cobertura ≥ ${{ needs.detect.outputs.min }}%"
+        run: node "$GITHUB_WORKSPACE/.github/scripts/coverage.js" coverage/clover.xml --min "${{ needs.detect.outputs.min }}" --label "${{ matrix.dir }}"
+      - if: matrix.stack == 'flutter'
+        name: "📊 Cobertura ≥ ${{ needs.detect.outputs.min }}%"
+        run: python3 "$GITHUB_WORKSPACE/scripts/quality/check_lcov.py" coverage/lcov.info --min "${{ needs.detect.outputs.min }}" --label "${{ matrix.dir }}"
+
+  container:
+    name: "🐳 ${{ matrix.file }}"
+    needs: detect
+    if: needs.detect.outputs.containers != '[]' && needs.detect.outputs.containers != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.containers) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: "🚨 hadolint"
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: ${{ matrix.file }}
+      - name: "🏗️ Build"
+        run: docker build -f "${{ matrix.file }}" -t "ci-image:${{ github.run_id }}" "${{ matrix.dir }}"
+      - name: "🔒️ trivy"
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        with:
+          image-ref: ci-image:${{ github.run_id }}
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+  hygiene:
+    name: "🧹 Higiene"
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: "📐 EditorConfig"
+        run: pipx run editorconfig-checker==3.11.1
+      - name: "⚙️ actionlint"
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
+  # 🔐 Roda também em rascunho e nunca vira aviso: segredo ou PAN no Git não tem baseline.
+  security:
+    name: "🔐 Segurança"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - name: "🔑 Segredos (gitleaks)"
+        env:
+          # Versão fixada; para digest, defina vars.GITLEAKS_IMAGE (ex.: zricethezav/gitleaks@sha256:…)
+          IMAGE: ${{ vars.GITLEAKS_IMAGE || 'zricethezav/gitleaks:v8.30.1' }}
+          PR_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || '' }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          RANGE="$PR_RANGE"
+          if [ -z "$RANGE" ]; then
+            if [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -qE '^0+$' && git cat-file -e "$BEFORE" 2>/dev/null; then RANGE="$BEFORE..$GITHUB_SHA"; else RANGE="HEAD~1..HEAD"; fi
+          fi
+          CONFIG=""; [ -f .gitleaks.toml ] && CONFIG="--config .gitleaks.toml"
+          docker run --rm -v "$PWD:/repo" -w /repo "$IMAGE" git --redact --no-banner $CONFIG --log-opts="$RANGE" .
+      - name: "💳 Números de cartão (PAN)"
+        run: git ls-files -z | xargs -0 python3 scripts/quality/scan_pan.py
+
+  # Check único e estável para exigir nos rulesets / branch protection
+  ci-ok:
+    name: ci-ok
+    needs: [detect, quality, container, hygiene, security]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - env:
+          DRAFT: ${{ github.event.pull_request.draft == true }}
+          SECURITY: ${{ needs.security.result }}
+          DETECT: ${{ needs.detect.result }}
+          QUALITY: ${{ needs.quality.result }}
+          CONTAINER: ${{ needs.container.result }}
+          HYGIENE: ${{ needs.hygiene.result }}
+          BLOCKING: ${{ needs.detect.outputs.blocking }}
+        run: |
+          if [ "$SECURITY" != "success" ]; then echo "::error::🔐 Segurança reprovada ($SECURITY) — segredo ou PAN bloqueia sempre"; exit 1; fi
+          if [ "$DRAFT" = "true" ]; then echo "::notice::📝 Rascunho — CI completo roda quando ficar pronto para revisão"; exit 0; fi
+          if [ "$DETECT" != "success" ]; then echo "::error::falha ao detectar projetos"; exit 1; fi
+          failed=""
+          for pair in "qualidade:$QUALITY" "contêineres:$CONTAINER" "higiene:$HYGIENE"; do
+            case "${pair#*:}" in success|skipped) ;; *) failed="$failed ${pair%%:*}(${pair#*:})" ;; esac
+          done
+          if [ -z "$failed" ]; then
+            [ "$QUALITY" = "skipped" ] && [ "$CONTAINER" = "skipped" ] && echo "::notice::⏱️ Nenhum projeto afetado (docs-only ou sem projetos) — nada a rodar"
+            echo "✅ Segurança, higiene e qualidade ok"; exit 0
+          fi
+          if [ "$BLOCKING" = "true" ]; then echo "::error::❌ Reprovado:$failed"; exit 1; fi
+          echo "::warning::⚠️ Reprovado:$failed — não bloqueia porque IN_PRODUCTION != true"

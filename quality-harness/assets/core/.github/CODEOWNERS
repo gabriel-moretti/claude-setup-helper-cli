@@ -1,0 +1,18 @@
+# 👥 Donos do código — exigidos na revisão de PRs para main (rulesets).
+# A última regra que casar vence. Troque os times pelos da sua organização.
+*                         @OWNER/devs
+
+# Gates de qualidade, segurança e release — mudança exige plataforma/liderança técnica
+/.github/                 @OWNER/plataforma
+/governance/              @OWNER/plataforma
+/lefthook.yml             @OWNER/plataforma
+/.lefthook/               @OWNER/plataforma
+/scripts/quality/         @OWNER/plataforma
+/.gitleaks.toml           @OWNER/plataforma @OWNER/seguranca
+/.claude/                 @OWNER/plataforma
+/AGENTS.md                @OWNER/plataforma
+/CHANGELOG.md             @OWNER/plataforma
+/VERSION                  @OWNER/plataforma
+
+# Código no escopo PCI DSS (ajuste para os caminhos reais)
+# /src/payments/          @OWNER/plataforma @OWNER/seguranca

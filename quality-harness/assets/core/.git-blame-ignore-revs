@@ -1,0 +1,5 @@
+# Commits só de formatação/reformatação em massa.
+# Ative localmente: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# O GitHub já usa este arquivo automaticamente.
+#
+# <sha-completo>  # 🎨 Aplica formatação padrão (ferramenta)

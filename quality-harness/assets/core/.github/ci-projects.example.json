@@ -1,0 +1,5 @@
+[
+  { "dir": "apps/web", "stack": "node" },
+  { "dir": "services/api", "stack": "python" },
+  { "dir": "mobile/app", "stack": "flutter" }
+]

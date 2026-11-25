@@ -1,0 +1,77 @@
+name: "♻️ Refactor / débito técnico"
+description: "Melhorias internas que não mudam o comportamento externo 🏗️"
+title: "♻️ refactor: "
+labels: ["♻️ refactor"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ♻️ Refactor / débito técnico
+        Use para registrar dívida técnica, limpeza, atualização de dependências ou mudanças de arquitetura.
+
+        > **Legenda** — campos com <kbd>*</kbd> são **obrigatórios**; *(opcional)* pode ficar em branco.
+
+  - type: dropdown
+    id: motivation
+    attributes:
+      label: "🏷️ Motivação principal"
+      options:
+        - "♻️ Manutenibilidade / legibilidade"
+        - "⚰️ Remover código morto"
+        - "⬆️ Atualizar dependências"
+        - "🏗️ Mudança de arquitetura"
+        - "✅ Testabilidade / cobertura"
+        - "🏷️ Tipagem"
+        - "🚨 Lint / padronização"
+    validations:
+      required: true
+
+  - type: textarea
+    id: area
+    attributes:
+      label: "📍 Área / arquivos afetados"
+      placeholder: "src/payments/**, módulo X…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "💩 Situação atual"
+      description: "O que está ruim hoje e qual o custo de deixar como está?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "🎯 Proposta"
+    validations:
+      required: true
+
+  - type: textarea
+    id: plan
+    attributes:
+      label: "🚧 Plano incremental (opcional)"
+      placeholder: |
+        - [ ] Passo 1
+        - [ ] Passo 2
+    validations:
+      required: false
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: "🚨 Riscos e mitigação (opcional)"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: guarantees
+    attributes:
+      label: "🦺 Garantias (opcional)"
+      options:
+        - label: "Não altera comportamento externo nem API pública"
+          required: false
+        - label: "Existem testes cobrindo a área antes da mudança"
+          required: false

@@ -1,0 +1,57 @@
+name: "📝 Documentação"
+description: "Erro, lacuna ou confusão na documentação 📚"
+title: "📝 docs: "
+labels: ["📝 docs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📝 Documentação
+        Correções pequenas (✏️ typo, 🔗 link) podem ir direto num PR — é mais rápido!
+
+        > **Legenda** — campos com <kbd>*</kbd> são **obrigatórios**; *(opcional)* pode ficar em branco.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: "🏷️ Tipo de problema"
+      options:
+        - "✏️ Erro de digitação / gramática"
+        - "📝 Conteúdo faltando"
+        - "💡 Explicação ou exemplo confuso"
+        - "⏪️ Conteúdo desatualizado"
+        - "🔗 Link quebrado"
+        - "🌐 Tradução"
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: "📍 Página ou arquivo"
+      placeholder: "https://… ou docs/guia.md#secao"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "🤔 O que está errado ou faltando?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: "💡 Sugestão de texto (opcional)"
+      render: markdown
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: "🙋 Contribuição (opcional)"
+      options:
+        - label: "Quero abrir o PR com a correção"
+          required: false

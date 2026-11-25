@@ -1,0 +1,73 @@
+# Org API conventions (practices/api-contracts.md). Lint: npx @stoplight/spectral-cli lint contracts/**/openapi.yaml
+extends: ["spectral:oas"]
+rules:
+  operation-operationId: error
+  operation-description: off
+  oas3-api-servers: warn
+  info-contact: off
+
+  paths-kebab-case:
+    description: Paths are English kebab-case with camelCase params (/v1/payment-links/{paymentLinkId}).
+    severity: error
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(/v[0-9]+)?(/([a-z0-9]+(-[a-z0-9]+)*|\\{[a-z][a-zA-Z0-9]*\\}))+$"
+
+  paths-major-version:
+    description: Paths start with the major version (/v1/...).
+    severity: error
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^/v[0-9]+/"
+
+  properties-camel-case:
+    description: JSON fields are English camelCase.
+    severity: error
+    given: "$..properties[*]~"
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+
+  errors-problem-json:
+    description: 4xx/5xx responses use RFC 9457 application/problem+json.
+    severity: error
+    given: "$.paths[*][*].responses[?(@property.match(/^(4|5)/))].content"
+    then:
+      field: "application/problem+json"
+      function: truthy
+
+  money-no-float:
+    description: Monetary fields are integer minor units, never number/float.
+    severity: error
+    given: "$..properties[?(@property.match(/(amount|price|fee|total|balance)$/i))]"
+    then:
+      field: type
+      function: pattern
+      functionOptions:
+        notMatch: "^number$"
+
+  post-idempotency-key:
+    description: POST operations with side effects accept an Idempotency-Key header (mark read-only POSTs with x-idempotent-not-required true).
+    severity: warn
+    given: "$.paths[*].post"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          anyOf:
+            - required: [x-idempotent-not-required]
+            - required: [parameters]
+              properties:
+                parameters:
+                  type: array
+                  contains:
+                    anyOf:
+                      - properties: { name: { const: Idempotency-Key }, in: { const: header } }
+                        required: [name, in]
+                      - required: [$ref]
+                        properties: { $ref: { pattern: "IdempotencyKey" } }

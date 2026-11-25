@@ -1,0 +1,11 @@
+{
+  "name": "🏷️ Tags de versão (só o workflow, imutáveis)",
+  "target": "tag",
+  "enforcement": "active",
+  "bypass_actors": [{ "actor_id": 15368, "actor_type": "Integration", "bypass_mode": "always" }],
+  "conditions": {
+    "ref_name": { "include": ["refs/tags/v*"], "exclude": [] },
+    "repository_name": { "include": ["~ALL"], "exclude": [], "protected": false }
+  },
+  "rules": [{ "type": "creation" }, { "type": "update" }, { "type": "deletion" }]
+}

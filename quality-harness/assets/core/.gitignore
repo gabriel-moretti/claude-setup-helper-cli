@@ -1,0 +1,13 @@
+node_modules/
+.venv/
+__pycache__/
+.dart_tool/
+build/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store

@@ -1,0 +1,106 @@
+name: "💥 Regressão"
+description: "Funcionava numa versão anterior e quebrou depois de atualizar ⏪️"
+title: "💥 regressão: "
+labels: ["🐛 bug", "💥 regressão", "🧐 triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 💥 Regressão
+        Antes de continuar, confira o **guia de migração** e o **CHANGELOG** — pode ser uma breaking change intencional 📝
+
+        > **Legenda** — campos com <kbd>*</kbd> são **obrigatórios**; *(opcional)* pode ficar em branco.
+
+  - type: checkboxes
+    id: pre-check
+    attributes:
+      label: "✅ Antes de abrir"
+      options:
+        - label: "📝 Li o guia de migração e o CHANGELOG da versão nova"
+          required: true
+        - label: "🔍 Não existe issue aberta para esta regressão"
+          required: true
+
+  - type: input
+    id: last-working-version
+    attributes:
+      label: "✅ Última versão que funcionava"
+      placeholder: "ex.: v1.9.3"
+    validations:
+      required: true
+
+  - type: input
+    id: first-broken-version
+    attributes:
+      label: "💥 Primeira versão com o problema"
+      placeholder: "ex.: v2.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "📋 Descreva a regressão"
+      description: "O que mudou de comportamento entre as duas versões?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "👣 Passos para reproduzir"
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "🧱 Ambiente"
+      value: |
+        - SO:
+        - Runtime / versão:
+        - Monorepo (sim/não, ferramenta):
+        - Forma de uso (CLI, lib, plugin…):
+      render: markdown
+    validations:
+      required: true
+
+  - type: input
+    id: suspect-commit
+    attributes:
+      label: "🔀 Commit / PR suspeito (opcional)"
+      description: "Se tiver feito um `git bisect`, aponte o culpado."
+      placeholder: "#1234 ou abc1234"
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: "🔧 Configuração (opcional)"
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "🔊 Logs (opcional)"
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: workaround
+    attributes:
+      label: "🩹 Existe contorno? (opcional)"
+      options:
+        - "Sim, fixando a versão anterior 📌"
+        - "Sim, com mudança de código/config"
+        - "Não"
+    validations:
+      required: false

@@ -1,0 +1,31 @@
+# Normaliza fim de linha para LF no repositório
+* text=auto eol=lf
+
+# Scripts Windows mantêm CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binários
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.jar  binary
+*.keystore binary
+*.jks  binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+
+# Lockfiles e código gerado: fora do diff do PR e das estatísticas de linguagem
+uv.lock              linguist-generated=true -diff
+pnpm-lock.yaml       linguist-generated=true -diff
+pubspec.lock         linguist-generated=true -diff
+*.g.dart             linguist-generated=true
+*.freezed.dart       linguist-generated=true
+**/migrations/*.py   linguist-generated=true

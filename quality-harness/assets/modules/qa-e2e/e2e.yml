@@ -1,0 +1,63 @@
+name: "🎭 E2E"
+
+# PRs to main/test: @critical · nightly: full suite · manual: any tag/env.
+# Full runs target sandbox or a local build; against `test` (prod-connected) only read-only @smoke.
+on:
+  pull_request:
+    branches: [main, test]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["**/*.md", "docs/**", ".github/ISSUE_TEMPLATE/**", ".github/PULL_REQUEST_TEMPLATE/**"]
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      grep: { description: "Tag filter (@smoke, @critical, @full)", default: "@critical" }
+      base_url: { description: "Target URL (empty = local build)", default: "" }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/4, 2/4, 3/4, 4/4]
+    env:
+      E2E_BASE_URL: ${{ inputs.base_url || vars.E2E_SANDBOX_URL }}
+      GREP: ${{ inputs.grep || (github.event_name == 'schedule' && '.' || '@critical') }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: lts/*, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - id: pw
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - run: pnpm exec playwright install --with-deps chromium
+      - if: env.E2E_BASE_URL == ''
+        run: pnpm build
+      - run: pnpm exec playwright test --grep "$GREP" --grep-invert "@quarantine" --shard ${{ matrix.shard }}
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-traces-${{ strategy.job-index }}
+          path: test-results/
+          retention-days: 7
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: blob-report-${{ strategy.job-index }}
+          path: blob-report/
+          retention-days: 3
