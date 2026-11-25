@@ -12,9 +12,11 @@ Skills are fetched directly from GitHub and installed into `.claude/skills/<name
 | `python-best-practices` | Python | — | [alleneubank/claude-code](https://github.com/alleneubank/claude-code) | Python conventions, typing, and project structure patterns |
 | `python-testing-patterns` | Python | ✅ | [wshobson/agents](https://github.com/wshobson/agents) | pytest patterns, fixtures, mocking, and test organization |
 | `flutter-best-practices` | Flutter | — | [kaelen2026/flutter-best-practices](https://github.com/kaelen2026/flutter-best-practices) | Flutter widget patterns, state management, and performance tips |
-| `dart-flutter-patterns` | Flutter | — | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) | Dart language patterns and Flutter architecture idioms |
-| `flutter-claude-skills` | Flutter | — | [Harishwarrior/flutter-claude-skills](https://github.com/Harishwarrior/flutter-claude-skills) | Extended Flutter skill set for Claude Code |
+| `dart-flutter-patterns` | Flutter | — | [affaan-m/ECC](https://github.com/affaan-m/ECC) | Dart language patterns and Flutter architecture idioms |
 | `flutter-tester` | Flutter | ✅ | [Harishwarrior/flutter-claude-skills](https://github.com/Harishwarrior/flutter-claude-skills) | Flutter widget testing and integration test patterns |
+| `patrol-e2e-testing` | Flutter | ✅ | [evanca/flutter-ai-rules](https://github.com/evanca/flutter-ai-rules) | Patrol end-to-end tests (native dialogs, permissions) |
+| `owasp-mobile-security-checker` | Flutter → iOS/Android | — | [Harishwarrior/flutter-claude-skills](https://github.com/Harishwarrior/flutter-claude-skills) | OWASP Mobile Top 10 audit: storage, network, secrets, dependencies |
+| `riverpod` / `bloc` / `provider` | Flutter → state (pick one) | — | [evanca/flutter-ai-rules](https://github.com/evanca/flutter-ai-rules) | State-management rules for the chosen approach |
 | `ios-swift-skills` (swift-concurrency-expert) | Swift | — | [patrickserrano/skills](https://github.com/patrickserrano/skills) | Swift concurrency (async/await, actors, structured concurrency) |
 | `nextjs-app-router-patterns` | Next.js | — | [wshobson/agents](https://github.com/wshobson/agents) | Next.js 14+ App Router, RSC, and server action patterns |
 | `claude-code-nextjs-skills` | Next.js | — | [laguagu/claude-code-nextjs-skills](https://github.com/laguagu/claude-code-nextjs-skills) | Comprehensive Next.js skill bundle for Claude Code |

@@ -10,6 +10,7 @@ export interface SkillSource {
 export interface PluginSource {
   name: string        // plugin name
   marketplace: string // e.g. 'claude-plugins-official'
+  repo?: string       // owner/repo do marketplace de terceiros, registrado antes do install
 }
 
 export interface McpSource {
@@ -36,6 +37,8 @@ export interface Category {
   label: string
   items: CatalogItem[]
   qa?: CatalogItem[]  // optional QA items asked per-language
+  languages?: string[] // só oferecida se uma destas linguagens foi selecionada
+  guardrails?: string[] // arquivos de assets/guardrails/ trazidos por esta categoria
 }
 
 export type InstallResult = {

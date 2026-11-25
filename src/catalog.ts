@@ -2,6 +2,25 @@ import type { Category, CatalogItem } from './types.js'
 
 const OFFICIAL = 'claude-plugins-official'
 
+// Compartilhados entre categorias; labels idênticos permitem o dedupe no install.
+const XCODE_BUILD_MCP: CatalogItem = {
+  label: 'XcodeBuildMCP',
+  method: 'mcp',
+  mcp: { name: 'XcodeBuildMCP', command: 'npx', args: ['-y', 'xcodebuildmcp@latest'] },
+}
+
+const MOBILE_MCP: CatalogItem = {
+  label: 'mobile-mcp (simulador/emulador)',
+  method: 'mcp',
+  mcp: { name: 'mobile-mcp', command: 'npx', args: ['-y', '@mobilenext/mobile-mcp@latest'] },
+}
+
+const OWASP_MOBILE: CatalogItem = {
+  label: 'owasp-mobile-security-checker',
+  method: 'skill',
+  skill: { org: 'Harishwarrior', repo: 'flutter-claude-skills', subdir: 'owasp-mobile-security-checker' },
+}
+
 export const LANGUAGES: Category[] = [
   {
     key: 'typescript',
@@ -44,6 +63,12 @@ export const LANGUAGES: Category[] = [
     label: 'Flutter',
     items: [
       {
+        // plugin oficial: skills Flutter/Dart + Dart MCP server (exige Dart SDK >= 3.9 no PATH)
+        label: 'dart-flutter (plugin oficial + Dart MCP)',
+        method: 'plugin',
+        plugin: { name: 'dart-flutter', marketplace: 'dart-flutter', repo: 'flutter/agent-plugins' },
+      },
+      {
         label: 'flutter-best-practices',
         method: 'skill',
         // single-skill repo, SKILL.md at root
@@ -52,17 +77,7 @@ export const LANGUAGES: Category[] = [
       {
         label: 'dart-flutter-patterns',
         method: 'skill',
-        skill: { org: 'affaan-m', repo: 'everything-claude-code', subdir: 'skills/dart-flutter-patterns' },
-      },
-      {
-        label: 'flutter-claude-skills',
-        method: 'skill',
-        skill: { org: 'Harishwarrior', repo: 'flutter-claude-skills' },
-      },
-      {
-        label: 'flutter-mcp (docs MCP)',
-        method: 'mcp',
-        mcp: { name: 'flutter-mcp', command: 'npx', args: ['-y', 'flutter-mcp'] },
+        skill: { org: 'affaan-m', repo: 'ECC', subdir: 'skills/dart-flutter-patterns' },
       },
     ],
     qa: [
@@ -71,7 +86,13 @@ export const LANGUAGES: Category[] = [
         method: 'skill',
         skill: { org: 'Harishwarrior', repo: 'flutter-claude-skills', subdir: 'flutter-tester' },
       },
+      {
+        label: 'patrol-e2e-testing',
+        method: 'skill',
+        skill: { org: 'evanca', repo: 'flutter-ai-rules', subdir: 'skills/patrol-e2e-testing' },
+      },
     ],
+    guardrails: ['frontend.md', 'flutter.md'],
   },
   {
     key: 'swift',
@@ -87,19 +108,81 @@ export const LANGUAGES: Category[] = [
         method: 'plugin',
         plugin: { name: 'swift-lsp', marketplace: OFFICIAL },
       },
+      XCODE_BUILD_MCP,
+    ],
+  },
+]
+
+// Perguntado só quando Flutter é selecionado: um item por plataforma alvo.
+export const FLUTTER_TARGETS: Category[] = [
+  {
+    key: 'ios',
+    label: 'iOS',
+    items: [XCODE_BUILD_MCP, MOBILE_MCP, OWASP_MOBILE],
+    guardrails: ['flutter-mobile.md'],
+  },
+  {
+    key: 'android',
+    label: 'Android',
+    items: [MOBILE_MCP, OWASP_MOBILE],
+    guardrails: ['flutter-mobile.md'],
+  },
+  {
+    key: 'web',
+    label: 'Web',
+    items: [{ label: 'playwright (plugin)', method: 'plugin', plugin: { name: 'playwright', marketplace: OFFICIAL } }],
+    guardrails: ['flutter-web.md'],
+  },
+  {
+    key: 'desktop',
+    label: 'Desktop (macOS / Windows / Linux)',
+    items: [],
+    guardrails: ['flutter-desktop.md'],
+  },
+]
+
+// Perguntado só quando Flutter é selecionado: escolha única, 'none' não instala nada.
+export const FLUTTER_STATE: Category[] = [
+  {
+    key: 'riverpod',
+    label: 'Riverpod',
+    items: [{ label: 'riverpod', method: 'skill', skill: { org: 'evanca', repo: 'flutter-ai-rules', subdir: 'skills/riverpod' } }],
+  },
+  {
+    key: 'bloc',
+    label: 'Bloc',
+    items: [{ label: 'bloc', method: 'skill', skill: { org: 'evanca', repo: 'flutter-ai-rules', subdir: 'skills/bloc' } }],
+  },
+  {
+    // VGV também sobe um Dart MCP próprio (duplica o do plugin oficial) e o MCP do very_good CLI
+    key: 'bloc-vgv',
+    label: 'Bloc + plugin Very Good Ventures',
+    items: [
+      { label: 'bloc', method: 'skill', skill: { org: 'evanca', repo: 'flutter-ai-rules', subdir: 'skills/bloc' } },
       {
-        label: 'XcodeBuildMCP',
-        method: 'mcp',
-        mcp: { name: 'XcodeBuildMCP', command: 'npx', args: ['-y', 'xcodebuildmcp@latest'] },
+        label: 'vgv-ai-flutter-plugin (plugin)',
+        method: 'plugin',
+        plugin: {
+          name: 'vgv-ai-flutter-plugin',
+          marketplace: 'very-good-claude-code-marketplace',
+          repo: 'VeryGoodOpenSource/very_good_claude_code_marketplace',
+        },
       },
     ],
   },
+  {
+    key: 'provider',
+    label: 'Provider',
+    items: [{ label: 'provider', method: 'skill', skill: { org: 'evanca', repo: 'flutter-ai-rules', subdir: 'skills/provider' } }],
+  },
+  { key: 'none', label: 'Nenhum / outro', items: [] },
 ]
 
 export const FRAMEWORKS: Category[] = [
   {
     key: 'nextjs',
     label: 'Next.js',
+    languages: ['typescript'],
     items: [
       {
         label: 'nextjs-app-router-patterns',
@@ -126,6 +209,7 @@ export const FRAMEWORKS: Category[] = [
   {
     key: 'fastapi',
     label: 'FastAPI',
+    languages: ['python'],
     items: [
       {
         label: 'fastapi-clean-architecture',
@@ -193,7 +277,7 @@ export const EXTRAS: { mcps: CatalogItem[]; skills: CatalogItem[] } = {
     {
       label: 'ui-ux-pro-max (plugin)',
       method: 'plugin',
-      plugin: { name: 'ui-ux-pro-max', marketplace: 'ui-ux-pro-max-skill' },
+      plugin: { name: 'ui-ux-pro-max', marketplace: 'ui-ux-pro-max-skill', repo: 'nextlevelbuilder/ui-ux-pro-max-skill' },
     },
     {
       label: 'awesome-design',

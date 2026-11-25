@@ -13,8 +13,10 @@ Nothing is added to your global `~/.claude/` config.
 | Plugin | Category | Marketplace | Description |
 |---|---|---|---|
 | `code-simplifier` | TypeScript | claude-plugins-official | Simplifies and refines code — reduces complexity, improves readability |
+| `dart-flutter` | Flutter | dart-flutter ([flutter/agent-plugins](https://github.com/flutter/agent-plugins)) | Official Flutter/Dart skills + Dart MCP server (`dart mcp-server`, Dart SDK ≥ 3.9) |
+| `vgv-ai-flutter-plugin` | Flutter → state "Bloc + VGV" | very-good-claude-code-marketplace ([VeryGoodOpenSource/very_good_claude_code_marketplace](https://github.com/VeryGoodOpenSource/very_good_claude_code_marketplace)) | Very Good Ventures skills (bloc, layered architecture, testing, a11y, i18n, static security) + Dart and `very_good` CLI MCPs |
 | `swift-lsp` | Swift | claude-plugins-official | Swift Language Server Protocol integration for accurate completions and diagnostics |
-| `playwright` | Next.js | claude-plugins-official | Browser automation, end-to-end testing, and MCP integration for Playwright |
+| `playwright` | Next.js, Flutter → Web | claude-plugins-official | Browser automation, end-to-end testing, and MCP integration for Playwright |
 | `frontend-design` | UI/UX | claude-plugins-official | Design system patterns, component architecture, and frontend best practices |
 | `aws-core` | AWS | claude-plugins-official | Core AWS SDK skills: CDK, IAM, Bedrock, Lambda, S3, Secrets Manager, and more |
 | `aws-serverless` | AWS | claude-plugins-official | Serverless patterns: Lambda, API Gateway, Step Functions, event-driven architecture |

@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from '../src/catalog.js'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS, FLUTTER_TARGETS, FLUTTER_STATE } from '../src/catalog.js'
 import type { CatalogItem, Category } from '../src/types.js'
 
 function allItems(cats: Category[]): CatalogItem[] {
@@ -12,6 +15,8 @@ const ALL: CatalogItem[] = [
   ...allItems(FRAMEWORKS),
   ...UIUX.items,
   ...allItems(DEVOPS),
+  ...allItems(FLUTTER_TARGETS),
+  ...allItems(FLUTTER_STATE),
   ...EXTRAS.mcps,
   ...EXTRAS.skills,
 ]
@@ -79,4 +84,45 @@ test('catalog is non-empty in every main section', () => {
   assert.ok(FRAMEWORKS.length > 0, 'FRAMEWORKS empty')
   assert.ok(UIUX.items.length > 0, 'UIUX empty')
   assert.ok(DEVOPS.length > 0, 'DEVOPS empty')
+})
+
+const GUARDRAILS_DIR = path.resolve(fileURLToPath(import.meta.url), '..', '..', 'assets', 'guardrails')
+
+test('every guardrail referenced by a category exists in assets/guardrails', () => {
+  for (const c of [...LANGUAGES, ...FRAMEWORKS, ...DEVOPS, ...FLUTTER_TARGETS, ...FLUTTER_STATE]) {
+    for (const f of c.guardrails ?? []) {
+      assert.ok(fs.existsSync(path.join(GUARDRAILS_DIR, f)), `missing guardrail ${f} (category ${c.key})`)
+    }
+  }
+})
+
+test('Flutter targets cover mobile, web and desktop with their guardrails', () => {
+  const keys = FLUTTER_TARGETS.map((t) => t.key)
+  assert.deepEqual(keys, ['ios', 'android', 'web', 'desktop'])
+  for (const t of FLUTTER_TARGETS) assert.ok((t.guardrails ?? []).length > 0, `no guardrail for ${t.key}`)
+})
+
+test('Flutter state choices include a no-op option', () => {
+  assert.ok(FLUTTER_STATE.some((c) => c.key === 'none' && c.items.length === 0))
+})
+
+test('third-party marketplace plugins declare a repo to register', () => {
+  for (const item of ALL.filter((i) => i.method === 'plugin' && i.plugin!.marketplace !== 'claude-plugins-official')) {
+    assert.ok(item.plugin!.repo, `plugin ${item.label} needs plugin.repo to add its marketplace`)
+  }
+})
+
+test('skills without subdir are not pointed at multi-skill repos known to lack a root SKILL.md', () => {
+  const flutter = LANGUAGES.find((l) => l.key === 'flutter')!
+  for (const it of [...flutter.items, ...(flutter.qa ?? [])]) {
+    if (it.skill?.repo === 'flutter-claude-skills') assert.ok(it.skill.subdir, `${it.label} must use a subdir`)
+  }
+})
+
+test('every framework declares languages that exist in LANGUAGES', () => {
+  const langKeys = LANGUAGES.map((l) => l.key)
+  for (const fw of FRAMEWORKS) {
+    assert.ok(fw.languages && fw.languages.length > 0, `framework ${fw.key} has no languages`)
+    for (const k of fw.languages!) assert.ok(langKeys.includes(k), `framework ${fw.key} references unknown language ${k}`)
+  }
 })

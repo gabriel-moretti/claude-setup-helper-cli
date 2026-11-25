@@ -10,8 +10,8 @@ These are installed via `claude mcp add --scope project`, which writes to `.mcp.
 
 | MCP | Category | Install Command | Description |
 |---|---|---|---|
-| `flutter-mcp` | Flutter | `npx -y flutter-mcp` | Flutter documentation and widget reference server |
-| `XcodeBuildMCP` | Swift | `npx -y xcodebuildmcp@latest` | Xcode build system, simulator control, and device management |
+| `XcodeBuildMCP` | Swift, Flutter → iOS | `npx -y xcodebuildmcp@latest` | Xcode build system, simulator control, and device management |
+| `mobile-mcp` | Flutter → iOS/Android | `npx -y @mobilenext/mobile-mcp@latest` | Drive iOS simulators / Android emulators and devices (tap, screenshot, inspect) |
 | `jupyter` | Extras | `uvx jupyter-mcp-server` | Jupyter notebook read/write, kernel execution, and cell management |
 
 ### What gets written to `.mcp.json`
@@ -19,10 +19,6 @@ These are installed via `claude mcp add --scope project`, which writes to `.mcp.
 ```json
 {
   "mcpServers": {
-    "flutter-mcp": {
-      "command": "npx",
-      "args": ["-y", "flutter-mcp"]
-    },
     "XcodeBuildMCP": {
       "command": "npx",
       "args": ["-y", "xcodebuildmcp@latest"]
@@ -46,6 +42,7 @@ Some plugins from `claude-plugins-official` ship their own MCP server as part of
 | `supabase` | Supabase MCP | Query databases, manage storage, handle auth, run migrations |
 | `chrome-devtools-mcp` | Chrome DevTools MCP | Inspect DOM, capture network, run JS in the browser from Claude Code |
 | `firecrawl` | Firecrawl MCP | Scrape URLs, crawl sites, extract structured content |
+| `dart-flutter` | Dart MCP server | Analyze, format, run tests, hot reload, pub.dev search (official, needs `dart` ≥ 3.9) |
 | `playwright` | Playwright MCP | Drive a real browser: click, fill forms, screenshot, assert |
 
 ---
@@ -60,4 +57,4 @@ Some plugins from `claude-plugins-official` ship their own MCP server as part of
 | **Update** | Re-run `claude mcp add` | `claude plugin update <name>` |
 | **When to use** | Standalone MCP servers (npm/uvx packages) | When the MCP is tightly coupled to a skill set |
 
-For Flutter and Swift, direct MCPs are used because no official plugin bundle exists yet. For Supabase, Playwright, Firecrawl, and Chrome DevTools, the plugin is the canonical install path — it bundles docs, skills, and the MCP in one.
+For Flutter, the official `dart-flutter` plugin bundles the Dart MCP server; device control (`mobile-mcp`, `XcodeBuildMCP`) is added per target platform. For Swift, direct MCPs are used because no official plugin bundle exists yet. For Supabase, Playwright, Firecrawl, and Chrome DevTools, the plugin is the canonical install path — it bundles docs, skills, and the MCP in one.

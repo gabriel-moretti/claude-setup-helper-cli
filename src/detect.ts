@@ -5,6 +5,7 @@ export interface DetectedStack {
   languages: string[]
   frameworks: string[]
   devops: string[]
+  flutterTargets: string[]
 }
 
 function readJson(file: string): any {
@@ -40,6 +41,7 @@ export function detectStack(dir: string): DetectedStack {
   const languages = new Set<string>()
   const frameworks = new Set<string>()
   const devops = new Set<string>()
+  const flutterTargets = new Set<string>()
 
   // Node / TypeScript
   const pkg = readJson(path.join(dir, 'package.json'))
@@ -65,7 +67,12 @@ export function detectStack(dir: string): DetectedStack {
   }
 
   // Flutter / Swift
-  if (exists(dir, 'pubspec.yaml')) languages.add('flutter')
+  if (exists(dir, 'pubspec.yaml')) {
+    languages.add('flutter')
+    // plataformas habilitadas = pastas geradas pelo `flutter create --platforms`
+    for (const t of ['ios', 'android', 'web']) if (exists(dir, t)) flutterTargets.add(t)
+    if (['macos', 'windows', 'linux'].some((d) => exists(dir, d))) flutterTargets.add('desktop')
+  }
   if (exists(dir, 'Package.swift') || hasFileMatching(dir, /\.xcodeproj$|\.xcworkspace$/)) languages.add('swift')
 
   // DevOps by config files
@@ -74,5 +81,10 @@ export function detectStack(dir: string): DetectedStack {
     devops.add('aws')
   }
 
-  return { languages: [...languages], frameworks: [...frameworks], devops: [...devops] }
+  return {
+    languages: [...languages],
+    frameworks: [...frameworks],
+    devops: [...devops],
+    flutterTargets: [...flutterTargets],
+  }
 }

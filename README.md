@@ -105,6 +105,12 @@ claude-setup
   ◆  Adicionar testes para Python?
   │  ● Sim  ○ Não
 
+  ◆  Flutter — plataformas alvo:          (só se Flutter for selecionado)
+  │  ◼ iOS   ◼ Android   ◻ Web   ◻ Desktop (macOS / Windows / Linux)
+
+  ◆  Flutter — gerência de estado:
+  │  ● Riverpod   ○ Bloc   ○ Bloc + plugin VGV   ○ Provider   ○ Nenhum / outro
+
   ◆  Frameworks
   │  ◼ Next.js   ◻ FastAPI
 
@@ -159,8 +165,13 @@ claude-setup
 | **TypeScript QA** | *(vitest patterns — em breve)* | — | — |
 | **Python** | python-best-practices | — | — |
 | **Python QA** | python-testing-patterns | — | — |
-| **Flutter** | flutter-best-practices, dart-flutter-patterns, flutter-claude-skills | — | flutter-mcp |
-| **Flutter QA** | flutter-tester | — | — |
+| **Flutter** | flutter-best-practices, dart-flutter-patterns | dart-flutter (oficial — skills Flutter/Dart + Dart MCP) | — |
+| **Flutter QA** | flutter-tester, patrol-e2e-testing | — | — |
+| **Flutter → iOS** | owasp-mobile-security-checker | — | XcodeBuildMCP, mobile-mcp |
+| **Flutter → Android** | owasp-mobile-security-checker | — | mobile-mcp |
+| **Flutter → Web** | — | playwright | — |
+| **Flutter → Desktop** | — | — | — |
+| **Flutter → estado** | riverpod, bloc ou provider (escolha única) | vgv-ai-flutter-plugin (opção "Bloc + plugin VGV") | — |
 | **Swift** | ios-swift-skills | swift-lsp | XcodeBuildMCP |
 | **Next.js** | nextjs-app-router-patterns, claude-code-nextjs-skills, shadcn | playwright | — |
 | **FastAPI** | fastapi-clean-architecture | — | — |
@@ -175,7 +186,11 @@ A UI só pergunta "instalar guardrails: sim/não". O mapeamento acontece por bai
 
 | Arquivo de regra | Instalado quando você seleciona… |
 |---|---|
-| `frontend.md` | TypeScript, Next.js ou UI/UX |
+| `frontend.md` | TypeScript, Next.js, Flutter ou Swift |
+| `flutter.md` | Flutter |
+| `flutter-mobile.md` | Flutter → iOS ou Android |
+| `flutter-web.md` | Flutter → Web |
+| `flutter-desktop.md` | Flutter → Desktop |
 | `backend.md` | Python ou FastAPI |
 | `nextjs-fullstack.md` | Next.js |
 | `rest-api.md` | FastAPI |

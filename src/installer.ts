@@ -14,11 +14,19 @@ function run(cmd: string, args: string[], cwd: string): void {
 }
 
 export function installPlugin(source: PluginSource, projectDir: string): void {
+  if (source.repo) {
+    // Marketplace de terceiros precisa estar registrado antes do install. Falha aqui é
+    // tolerada (ex.: já registrado); se for real, o install abaixo falha com o erro claro.
+    try {
+      run('claude', ['plugin', 'marketplace', 'add', source.repo, '--scope', 'project'], projectDir)
+    } catch {}
+  }
   run('claude', ['plugin', 'install', `${source.name}@${source.marketplace}`, '--scope', 'project'], projectDir)
 }
 
 export function installMcp(source: McpSource, projectDir: string): void {
-  run('claude', ['mcp', 'add', '--scope', 'project', source.name, source.command, ...source.args], projectDir)
+  // `--` impede o claude de interpretar flags do servidor (ex.: `npx -y`) como opções próprias
+  run('claude', ['mcp', 'add', '--scope', 'project', source.name, '--', source.command, ...source.args], projectDir)
 }
 
 function copyLocalRules(srcDir: string, files: string[], destDir: string): void {

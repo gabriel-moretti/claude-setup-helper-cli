@@ -13,7 +13,7 @@ test('detectStack: empty dir detects nothing', () => {
   const dir = tmpDir()
   try {
     const d = detectStack(dir)
-    assert.deepEqual(d, { languages: [], frameworks: [], devops: [] })
+    assert.deepEqual(d, { languages: [], frameworks: [], devops: [], flutterTargets: [] })
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }
@@ -72,6 +72,28 @@ test('detectStack: Flutter and Swift by manifest files', () => {
     const d = detectStack(dir)
     assert.ok(d.languages.includes('flutter'))
     assert.ok(d.languages.includes('swift'))
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('detectStack: Flutter platform targets from generated folders', () => {
+  const dir = tmpDir()
+  try {
+    fs.writeFileSync(path.join(dir, 'pubspec.yaml'), 'name: app\n')
+    for (const d of ['ios', 'android', 'linux']) fs.mkdirSync(path.join(dir, d))
+    const d = detectStack(dir)
+    assert.deepEqual(d.flutterTargets.sort(), ['android', 'desktop', 'ios'])
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('detectStack: platform folders ignored without pubspec.yaml', () => {
+  const dir = tmpDir()
+  try {
+    fs.mkdirSync(path.join(dir, 'web'))
+    assert.deepEqual(detectStack(dir).flutterTargets, [])
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }

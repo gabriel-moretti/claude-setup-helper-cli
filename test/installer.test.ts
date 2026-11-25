@@ -102,6 +102,17 @@ test('installPlugin: throws on failure (covers run() try/catch)', () => {
   }
 })
 
+test('installPlugin: still throws when a third-party marketplace repo is set', () => {
+  const dir = tmpDir()
+  try {
+    assert.throws(() =>
+      installPlugin({ name: '_nonexistent_test_', marketplace: '_nonexistent_mkt_', repo: '_nonexistent_/_repo_' }, dir),
+    )
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('installMcp: invokes claude mcp add without crashing the process', () => {
   const dir = tmpDir()
   try {

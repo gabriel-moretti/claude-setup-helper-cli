@@ -23,6 +23,10 @@ Conflict order when rules collide: **correctness > security > reversibility > co
 | `backend.md` | services/Lambda/workers, queues, webhooks, money-moving logic |
 | `aws-cost.md` | writing IaC / provisioning AWS, controlling standing spend |
 | `aws-security.md` | IAM, network, encryption, secrets, public-exposure on AWS |
+| `flutter.md` | any Flutter/Dart app — secrets in the binary, analyze/format gate, state, money as int |
+| `flutter-mobile.md` | Flutter on iOS/Android — secure storage, ATS/cleartext, permissions, signing |
+| `flutter-web.md` | Flutter Web — public bundle, CSP/CORS, caching, `dart:io` on web |
+| `flutter-desktop.md` | Flutter on macOS/Windows/Linux — sandbox/entitlements, signing, auto-update |
 | `supabase.md` | Postgres + RLS, Auth, Edge Functions, Storage, migrations |
 | `github-actions.md` | CI/CD workflows, action pinning, deploy gating, secrets in CI |
 

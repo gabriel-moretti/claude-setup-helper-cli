@@ -12,7 +12,7 @@ import {
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { printHeader } from './header.js'
-import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS } from './catalog.js'
+import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS, FLUTTER_TARGETS, FLUTTER_STATE } from './catalog.js'
 import { installPlugin, installMcp, installSkill, installLocalPlugin, installGuardrails, installBaserules, installHooks, installLocalSkills, installWorkflows, listBaserules, updateClaudeMd } from './installer.js'
 import { detectStack } from './detect.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
@@ -20,11 +20,12 @@ import type { CatalogItem, Category, InstallResult } from './types.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TOOL_ROOT = path.resolve(__dirname, '..')
 
-function resolveGuardrails(langKeys: string[], fwKeys: string[], devopsKeys: string[]): string[] {
+function resolveGuardrails(langs: Category[], fwKeys: string[], devopsKeys: string[], flutterTargets: Category[]): string[] {
   const files = new Set<string>()
+  for (const c of [...langs, ...flutterTargets]) for (const f of c.guardrails ?? []) files.add(f)
+  const langKeys = langs.map((l) => l.key)
   if (langKeys.includes('typescript')) files.add('frontend.md')
   if (langKeys.includes('python')) files.add('backend.md')
-  if (langKeys.includes('flutter')) files.add('frontend.md')
   if (langKeys.includes('swift')) files.add('frontend.md')
   if (fwKeys.includes('nextjs')) {
     files.add('nextjs-fullstack.md')
@@ -86,8 +87,26 @@ async function main(): Promise<void> {
     }
   }
 
-  // 2. Frameworks — optional
-  const fws = await pickCategories(FRAMEWORKS, 'Frameworks (opcional):', false, detected.frameworks)
+  // 1b. Flutter — plataformas alvo + gerência de estado
+  let flutterTargets: Category[] = []
+  if (langs.some((l) => l.key === 'flutter')) {
+    flutterTargets = await pickCategories(FLUTTER_TARGETS, 'Flutter — plataformas alvo:', true, detected.flutterTargets)
+    for (const t of flutterTargets) toInstall.push(...t.items)
+
+    const state = await select({
+      message: 'Flutter — gerência de estado:',
+      options: FLUTTER_STATE.map((c) => ({ value: c.key, label: c.label })),
+    })
+    bail(state)
+    toInstall.push(...FLUTTER_STATE.find((c) => c.key === state)!.items)
+  }
+
+  // 2. Frameworks — optional, só os compatíveis com as linguagens escolhidas
+  const langKeys = langs.map((l) => l.key)
+  const fwOptions = FRAMEWORKS.filter((f) => !f.languages || f.languages.some((k) => langKeys.includes(k)))
+  const fws = fwOptions.length > 0
+    ? await pickCategories(fwOptions, 'Frameworks (opcional):', false, detected.frameworks)
+    : []
   for (const fw of fws) toInstall.push(...fw.items)
 
   // 3. UI/UX — confirm
@@ -137,8 +156,13 @@ async function main(): Promise<void> {
   const wantGuardrails = await confirm({ message: 'Adicionar Guardrails?' })
   bail(wantGuardrails)
   const guardrailFiles = wantGuardrails
-    ? resolveGuardrails(langs.map((l) => l.key), fws.map((f) => f.key), devops.map((d) => d.key))
+    ? resolveGuardrails(langs, fws.map((f) => f.key), devops.map((d) => d.key), flutterTargets)
     : []
+
+  // mesmo item pode vir de mais de uma categoria (ex.: XcodeBuildMCP em Swift e Flutter/iOS)
+  const seen = new Set<string>()
+  const unique = toInstall.filter((it) => !seen.has(it.label) && seen.add(it.label))
+  toInstall.splice(0, toInstall.length, ...unique)
 
   if (toInstall.length === 0 && hooksChoice === 'no' && !wantBaserules && !wantLocalSkills && !wantWorkflows && guardrailFiles.length === 0) {
     outro('Nada selecionado.')

@@ -39,8 +39,11 @@ export async function fetchSkill(source: SkillSource, targetDir: string): Promis
     await download(url, tarball)
     execFileSync('tar', ['xzf', tarball, '-C', tmp], { stdio: 'pipe' })
 
-    // GitHub extracts to {repo}-{ref}
-    const extractedRoot = path.join(tmp, `${source.repo}-${ref}`)
+    // GitHub extrai para uma única pasta raiz, normalmente {repo}-{ref} — mas repos
+    // renomeados usam o nome novo (ex.: everything-claude-code → ECC-main), então lê a pasta real.
+    const roots = fs.readdirSync(tmp, { withFileTypes: true }).filter((d) => d.isDirectory())
+    if (roots.length !== 1) throw new Error(`Unexpected archive layout for ${source.org}/${source.repo}`)
+    const extractedRoot = path.join(tmp, roots[0].name)
     const src = source.subdir ? path.join(extractedRoot, source.subdir) : extractedRoot
 
     if (!fs.existsSync(src)) {
