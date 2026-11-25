@@ -17,15 +17,20 @@ Os worktrees dos agentes partem do `HEAD` de `main`. Hoje `quality-harness/`, `a
 
 ## Ondas
 
+**Execução 1 (concluída):** t1, t2, t4 já estão integrados em `feat/quality-harness-integration`. t3 não entregou commits e é refeito na execução 2.
+
+**Execução 2:**
+
 | Onda | Tarefas (em paralelo) |
 |---|---|
-| 1 | t1 mover skill · t2 testes `harness.ts` · t3 testes `harness-modules.ts` · t4 regra de atribuição de IA |
+| 1 | t3 testes `harness-modules.ts` · t10 scripts do harness → `.cjs` + ignorar `.claude/` |
 | 2 | t5 `detect_stacks.py --json` · t6 `src/harness-modules.ts` |
 | 3 | t7 `src/harness.ts` |
 | 4 | t8 integração em `src/index.ts` |
 | 5 | t9 README |
 
 Caminho crítico: t3 → t6 → t7 → t8 → t9.
+**Commits sem trailer `Co-Authored-By` nem linha "Generated with" de IA** (regra adicionada em t4).
 
 ---
 
@@ -158,6 +163,7 @@ Casos:
 11. Pastas ignoradas: `node_modules/next/package.json` com `next` → não contém `nextjs` se não houver outro sinal.
 12. Profundidade: `package.json` `{}` na raiz (base layer `node` presente) + `a/b/c/d/nest-cli.json` (pasta de profundidade 4) → **não** contém `nestjs`; com `a/b/c/nest-cli.json` → contém `nestjs`.
 13. `package.json` com JSON inválido não lança.
+14. Pasta `.claude/` ignorada: `.claude/skills/x/playwright.config.ts` (e nada mais além de `package.json` `{}` na raiz) → `detected` **não** contém `qa-e2e`. Motivo: o próprio skill instalado em `.claude/skills/quality-harness/` traz `assets/modules/qa-e2e/playwright.config.ts`.
 
 Commit: `✅ test: add contract tests for harness module detection fallback`.
 
@@ -203,9 +209,47 @@ test('installBaserules: git-commits.md forbids AI attribution and AI branch pref
 
 ---
 
+## t10 — Scripts do harness em `.cjs` + ignorar `.claude/` na detecção
+
+- **Tier:** sonnet-medium · **Kind:** implementation · **Wave:** 1 (execução 2) · **Depends on:** t1
+- **Files:** tudo sob `assets/quality-harness/` que referencia `.github/scripts/**/*.js`, mais `assets/quality-harness/scripts/harness_modules.py` e `assets/quality-harness/CHANGELOG.md`. **Não** tocar em `assets/quality-harness/scripts/detect_stacks.py` além das referências `.js` → `.cjs` (t5 edita o `main()` dele na onda seguinte).
+
+Motivo: os validadores em `assets/core/.github/scripts/` são CommonJS (`require`/`module.exports`). Num repo cujo `package.json` raiz tem `"type": "module"` (este repo e muitos projetos Next.js/ESM), o Node os carrega como ESM e eles quebram (`s.load is not a function`). Por isso `ApplyTest.test_assets_parse` falha aqui; num repo-alvo ESM os checks `ci-ok`, `conventions` e `standards` quebrariam do mesmo jeito.
+
+Passos:
+1. Renomear com `git mv` todo `.js` sob `assets/quality-harness/assets/core/.github/scripts/` (incluindo `lib/` e `test/`) para `.cjs`. Os testes ficam `test/<nome>.test.cjs`.
+2. Atualizar **todas** as referências. Listar com:
+   `grep -rnE "\.github/scripts/[A-Za-z0-9_./-]*\.js|require\('\./[^']*'\)|require\('\.\./[^']*'\)|scripts/test/\*\.test\.js" assets/quality-harness`
+   - `require('./lib/x')` sem extensão continua resolvendo `.cjs`? **Não** — o Node só tenta `.js`, `.json` e `.node` automaticamente. Trocar cada `require` relativo para o caminho explícito com `.cjs` (ex.: `require('./lib/branch.cjs')`).
+   - Workflows (`assets/core/.github/workflows/*.yml`), `lefthook.yml`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/*.md`, `.github/standards.json`, `scripts/quality/check_lcov.py`, `assets/python/pyproject.quality.toml`, `SKILL.md`, `references/*.md`, `scripts/audit_history.js`, `scripts/detect_stacks.py`, `scripts/tests/test_modules.py`.
+   - Comandos `node --test .github/scripts/test/*.test.js` → `node --test .github/scripts/test/*.test.cjs`.
+   - **Não** alterar entradas antigas do `CHANGELOG.md` (histórico).
+3. Em `assets/quality-harness/scripts/harness_modules.py`, adicionar `".claude"` a `SKIP_DIRS`, com comentário: o skill instalado em `.claude/skills/` traz arquivos que disparariam a detecção.
+4. Em `test_modules.py`, adicionar em `DetectionTest`:
+
+```python
+    def test_claude_dir_is_ignored(self) -> None:
+        root = make_repo({".claude/skills/quality-harness/assets/modules/qa-e2e/playwright.config.ts": "export default {}\n"})
+        try:
+            self.assertNotIn("qa-e2e", hm.detect(root, skill_root=SKILL).detected)
+        finally:
+            shutil.rmtree(root)
+```
+
+5. `CHANGELOG.md` do skill, em `## [Unreleased]` (criar se não existir):
+   - `### Fixed` → `- Ship validator scripts as \`.cjs\` so they run in repos whose \`package.json\` sets \`"type": "module"\` ([scripts](assets/core/.github/scripts))`
+   - `### Fixed` → `- Ignore \`.claude/\` in module detection so an installed skill doesn't trigger modules ([harness_modules.py](scripts/harness_modules.py))`
+6. Verificar:
+   - `grep -rnE "\.github/scripts/[A-Za-z0-9_./-]*\.js\b" assets/quality-harness | grep -v CHANGELOG.md` → vazio.
+   - `python3 -m unittest discover assets/quality-harness/scripts/tests` → `OK` (inclusive `test_assets_parse`), rodando a partir da raiz do repo (que tem `"type": "module"`).
+   - `cd assets/quality-harness/assets/core && node --test .github/scripts/test/*.test.cjs` → todos passam.
+7. Commit: `🐛 fix: ship harness validators as cjs and skip .claude in detection`.
+
+---
+
 ## t5 — Flag `--json` em `detect_stacks.py`
 
-- **Tier:** sonnet-medium · **Kind:** implementation · **Wave:** 2 · **Depends on:** t1
+- **Tier:** sonnet-medium · **Kind:** implementation · **Wave:** 2 · **Depends on:** t1, t10
 - **Files:** `assets/quality-harness/scripts/detect_stacks.py`, `assets/quality-harness/scripts/tests/test_modules.py`, `assets/quality-harness/CHANGELOG.md`
 
 Passos:
@@ -264,9 +308,10 @@ import path from 'node:path'
 
 // (interfaces ModuleDetect, ModuleSpec, HarnessCatalog, TsDetection exatamente como em t3)
 
-const SKIP_DIRS = new Set(['.git', 'node_modules', 'vendor', '.venv', 'venv', '__pycache__', '.dart_tool',
+// .claude/ é ignorada: o skill instalado lá traz arquivos que disparariam a detecção (ex.: playwright.config.ts)
+const SKIP_DIRS = new Set(['.git', '.claude', 'node_modules', 'vendor', '.venv', 'venv', '__pycache__', '.dart_tool',
   'build', 'dist', '.next', 'coverage', '.terraform', '.gradle'])
-// profundidade máxima de pastas varridas (raiz = 0); espelha o limite do projects.js
+// profundidade máxima de pastas varridas (raiz = 0); espelha o limite do projects.cjs
 const MAX_DEPTH = 3
 
 export function loadHarnessCatalog(skillRoot: string): HarnessCatalog {
@@ -699,7 +744,8 @@ Passos (texto em PT-BR):
   { "id": "t2", "title": "Contract tests for src/harness.ts", "deps": [], "tier": "sonnet-medium", "kind": "tests" },
   { "id": "t3", "title": "Contract tests for src/harness-modules.ts", "deps": [], "tier": "sonnet-medium", "kind": "tests" },
   { "id": "t4", "title": "AI attribution rule in git-commits baserule", "deps": [], "tier": "sonnet-low", "kind": "implementation" },
-  { "id": "t5", "title": "detect_stacks.py --json flag + python test", "deps": ["t1"], "tier": "sonnet-medium", "kind": "implementation" },
+  { "id": "t10", "title": "Harness validators to .cjs + skip .claude in detection", "deps": ["t1"], "tier": "sonnet-medium", "kind": "implementation" },
+  { "id": "t5", "title": "detect_stacks.py --json flag + python test", "deps": ["t1", "t10"], "tier": "sonnet-medium", "kind": "implementation" },
   { "id": "t6", "title": "src/harness-modules.ts TS detection fallback", "deps": ["t1", "t3"], "tier": "sonnet-high", "kind": "implementation" },
   { "id": "t7", "title": "src/harness.ts detection/apply/install helpers", "deps": ["t2", "t5", "t6"], "tier": "sonnet-high", "kind": "implementation" },
   { "id": "t8", "title": "Wire quality-harness step into src/index.ts", "deps": ["t7"], "tier": "sonnet-high", "kind": "implementation" },

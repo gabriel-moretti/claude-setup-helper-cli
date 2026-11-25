@@ -46,6 +46,7 @@ Alternando entre frontends TypeScript, APIs Python, apps Flutter, código Swift,
 | 🔗 &nbsp;**MCPs com escopo** | `claude mcp add --scope project` → grava em `.mcp.json` |
 | 🧪 &nbsp;**QA skills opcionais** | Por linguagem: pergunta se você quer padrões de testes incluídos |
 | 🛡️ &nbsp;**Guardrails automáticos** | Seleção do stack → arquivos de regras instalados automaticamente |
+| 🧰 &nbsp;**Quality harness opcional** | Detecta os módulos do repo e pré-seleciona os que se aplicam; o skill faz o resto |
 | 📋 &nbsp;**CLAUDE.md idempotente** | Cria ou faz append de imports `@path` — nunca duplica |
 | 🎭 &nbsp;**Hooks de qualidade** | Gates de PreToolUse, linters de PostToolUse, sons de meme opcionais |
 | 💪 &nbsp;**Resiliente a erros** | Uma falha não aborta o resto; resumo completo no final |
@@ -153,6 +154,15 @@ claude-setup
   ◇  Pronto — .claude/ está configurado. Abra o Claude Code e trabalhe.
 ```
 
+### Etapa quality-harness (4b)
+
+Depois de **DevOps** (etapa 4) e antes de **Extras** (etapa 5), o CLI pergunta se o repositório deve receber o quality-harness da DeltaPag:
+
+1. **Confirmação** — `Instalar quality-harness (padrão de repo: lefthook, CI, SemVer, gitmoji)?`. Se você recusar, nenhum arquivo relacionado é alterado.
+2. **Aviso fora de repo git** — se o diretório atual não for um repositório git, o CLI pergunta antes se deve continuar mesmo assim.
+3. **Aviso sem Python ≥ 3.11** — sem Python compatível, o CLI usa uma detecção simplificada em TypeScript: varre os arquivos do repo (até 3 níveis de pasta, ignorando `node_modules/`, `.claude/`, `.git/` e afins) com os sinais de detecção de `modules.json` (`files`, `dirs`, `packageDeps`, `pyprojectDeps`, `pubspecDeps`, `standards`). Os sinais `globs` e `tfProviders` e a resolução de `depends` ficam de fora; o skill aplica os módulos depois. O setup continua normalmente.
+4. **Multi-select de módulos** — lista todas as chaves de `modules.json`, exceto `_baseLayers`. Os módulos detectados e os que combinam com as seleções anteriores já vêm marcados; você pode desmarcar ou marcar outros.
+
 ---
 
 ## O Que É Instalado
@@ -211,6 +221,32 @@ A UI só pergunta "instalar guardrails: sim/não". O mapeamento acontece por bai
 
 > Sons precisam de arquivos MP3 em `~/.claude/sounds/`. O instalador cria o diretório — só jogar os arquivos lá dentro.
 
+### Quality harness
+
+Opcional. Quando você aceita a etapa, o CLI instala o skill `quality-harness` e grava os módulos escolhidos. A parte que exige julgamento (core, questionário de padrões, RETROFIT em etapas e governança) fica com o skill, executado pelo Claude.
+
+Mapeamento de seleção → módulo pré-marcado:
+
+| Seleção no CLI | Módulo pré-marcado |
+|---|---|
+| Framework `nextjs` | `nextjs` |
+| Framework `fastapi` | `fastapi` |
+| Linguagem `flutter` | `flutter` |
+| DevOps `aws` | `aws` |
+| DevOps `supabase` | `database` |
+
+Também vêm marcados os módulos que o detector do harness sugere (`suggested` e `recommended`) e o `github` (`default`).
+
+**O que o CLI faz:**
+
+- Copia o skill para `.claude/skills/quality-harness/`, sobrescrevendo. É tooling, não conteúdo seu.
+- Se houver módulos selecionados, com Python ≥ 3.11 chama `apply_modules.py --modules ...`. O script resolve `depends`, grava `.github/standards.json → modules`, copia os assets dos módulos sem sobrescrever e faz merge de `.mcp.json`. Sem Python, grava só `.github/standards.json → {"modules": [...]}`, por união e sem remover nada.
+- Adiciona ao `CLAUDE.md` uma seção `## Quality harness` (com o marcador `<!-- quality-harness -->`) orientando o Claude a usar o skill `quality-harness`. Se o `CLAUDE.md` não existir, ele é criado. A seção não é duplicada em execuções repetidas.
+
+**O que fica para o skill:** o core do harness (placeholders, VERSION por trilha, RETROFIT em etapas), o questionário de padrões e a governança (rulesets).
+
+**Próximo passo:** o CLI mostra `Próximo passo: rode /quality-harness no Claude para instalar o core.` Sem Python, a confirmação da etapa de módulos também avisa que as dependências de módulos e os assets serão aplicados pelo skill.
+
 ---
 
 ## Arquitetura
@@ -224,15 +260,20 @@ claude-setup-helper/
 │   │                         installGuardrails / installBaserules / installHooks
 │   │                         updateClaudeMd (append idempotente de @path)
 │   ├── skill-fetcher.ts   ← tarball GitHub → extrair → .claude/skills/<nome>/
+│   ├── harness.ts         ← quality-harness: findPython, detectModules, applyModules, installHarnessSkill
+│   ├── harness-modules.ts ← fallback em TS para detecção de módulos (varre o repo com os sinais de modules.json)
 │   ├── header.ts          ← ASCII art CLAUDE (ciano) + SETUP (roxo)
 │   └── types.ts           ← CatalogItem, Category, SkillSource, …
 ├── assets/
 │   ├── guardrails/        ← arquivos .md copiados para .claude/guardrails/
+│   ├── quality-harness/   ← skill copiado para .claude/skills/quality-harness/
 │   ├── baserules/         ← ignore-files.md  language.md  security.md
 │   └── hooks/             ← cinco scripts .sh + template hooks-settings.json
 └── test/
     ├── catalog.test.ts    ←  7 testes  — integridade e forma do catálogo
     ├── installer.test.ts  ← 13 testes  — funções de instalação + updateClaudeMd
+    ├── harness.test.ts    ← mapeamento de seleções, standards.json, validação e findPython
+    ├── harness-modules.test.ts ← detecção TS com fixtures temporárias
     └── header.test.ts     ←  1 teste   — smoke test para saída do ASCII art
 ```
 
@@ -250,6 +291,7 @@ Usuário seleciona o stack
         ├─ guardrails  ──→  copyLocalRules()  ──→  .claude/guardrails/
         ├─ baserules   ──→  copyLocalRules()  ──→  .claude/baserules/
         ├─ hooks       ──→  copia .sh + merge settings.json  ──→  .claude/hooks/
+        ├─ quality-harness ──→  installHarnessSkill() + applyModules() ──→  .claude/skills/quality-harness/ + .github/standards.json
         └─ CLAUDE.md   ──→  updateClaudeMd()  ──→  append @path imports (idempotente)
 ```
 
@@ -358,6 +400,7 @@ Cobertura obrigatória de **≥ 85%** em linhas, branches e funções.
 - **`claude` CLI** — `npm install -g @anthropic-ai/claude-code`
 - **Acesso à internet** — skills são buscadas ao vivo do GitHub no momento da instalação
 - **`tar`** — padrão em macOS e Linux
+- **Python ≥ 3.11** — *opcional*. Sem ele, a detecção do quality-harness é simplificada e o skill aplica os módulos depois
 
 ---
 

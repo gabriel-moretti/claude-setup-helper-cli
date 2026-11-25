@@ -264,3 +264,15 @@ test('installHooks: merges into existing settings.json without overwriting other
     fs.rmSync(dir, { recursive: true, force: true })
   }
 })
+
+test('installBaserules: git-commits.md forbids AI attribution and AI branch prefixes', () => {
+  const dir = tmpDir()
+  try {
+    installBaserules(dir, TOOL_ROOT)
+    const content = fs.readFileSync(path.join(dir, '.claude', 'baserules', 'git-commits.md'), 'utf8')
+    assert.match(content, /NEVER add AI attribution/)
+    assert.match(content, /claude\//)
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})

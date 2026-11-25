@@ -9,12 +9,14 @@ import {
   isCancel,
   log,
 } from '@clack/prompts'
+import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { printHeader } from './header.js'
 import { LANGUAGES, FRAMEWORKS, UIUX, DEVOPS, EXTRAS, FLUTTER_TARGETS, FLUTTER_STATE } from './catalog.js'
 import { installPlugin, installMcp, installSkill, installLocalPlugin, installGuardrails, installBaserules, installHooks, installLocalSkills, installWorkflows, listBaserules, updateClaudeMd } from './installer.js'
 import { detectStack } from './detect.js'
+import { findPython, detectModules, preselectModules, installHarnessSkill, applyModules, addHarnessNote } from './harness.js'
 import type { CatalogItem, Category, InstallResult } from './types.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -118,6 +120,42 @@ async function main(): Promise<void> {
   const devops = await pickCategories(DEVOPS, 'DevOps (opcional):', false, detected.devops)
   for (const d of devops) toInstall.push(...d.items)
 
+  // 4b. Quality harness — padrão de repo; o core é instalado depois pelo skill
+  let harnessModules: string[] | null = null
+  let harnessPython: string | null = null
+  const wantHarness = await confirm({
+    message: 'Instalar quality-harness (padrão de repo: lefthook, CI, SemVer, gitmoji)?',
+    initialValue: false,
+  })
+  bail(wantHarness)
+  if (wantHarness) {
+    let proceed = true
+    if (!fs.existsSync(path.join(process.cwd(), '.git'))) {
+      const goOn = await confirm({ message: 'Este diretório não é um repositório git. Continuar mesmo assim?', initialValue: false })
+      bail(goOn)
+      proceed = goOn as boolean
+    }
+    if (proceed) {
+      harnessPython = findPython()
+      if (!harnessPython) log.warn('Python ≥ 3.11 não encontrado — usando detecção simplificada; o skill aplica os módulos depois.')
+      const det = detectModules(process.cwd(), TOOL_ROOT, harnessPython)
+      if (det.warning) log.warn(det.warning)
+      const initial = preselectModules(det, {
+        languages: langs.map((l) => l.key),
+        frameworks: fws.map((f) => f.key),
+        devops: devops.map((d) => d.key),
+      })
+      const picked = await multiselect({
+        message: 'Harness — módulos (pré-marcados pela detecção):',
+        options: det.catalog.map((m) => ({ value: m, label: m })),
+        initialValues: initial,
+        required: false,
+      })
+      bail(picked)
+      harnessModules = picked as string[]
+    }
+  }
+
   // 5. Extras — optional
   const extraItems = [...EXTRAS.mcps, ...EXTRAS.skills]
   const extraSel = await multiselect({
@@ -164,7 +202,7 @@ async function main(): Promise<void> {
   const unique = toInstall.filter((it) => !seen.has(it.label) && seen.add(it.label))
   toInstall.splice(0, toInstall.length, ...unique)
 
-  if (toInstall.length === 0 && hooksChoice === 'no' && !wantBaserules && !wantLocalSkills && !wantWorkflows && guardrailFiles.length === 0) {
+  if (toInstall.length === 0 && hooksChoice === 'no' && !wantBaserules && !wantLocalSkills && !wantWorkflows && guardrailFiles.length === 0 && harnessModules === null) {
     outro('Nada selecionado.')
     process.exit(0)
   }
@@ -176,9 +214,12 @@ async function main(): Promise<void> {
   const guardrailLine = guardrailFiles.length > 0 ? `\n  guardrails: ${guardrailFiles.join(', ')}` : ''
   const localLine = (wantLocalSkills ? '\n  skills locais: audit-rules, emojicommit, parallel-plan' : '') +
     (wantWorkflows ? '\n  workflows: .claude/workflows/' : '')
-  const extras = (wantBaserules ? 1 : 0) + (guardrailFiles.length > 0 ? 1 : 0) + (wantLocalSkills ? 1 : 0) + (wantWorkflows ? 1 : 0)
+  const harnessLine = harnessModules !== null
+    ? `\n  quality-harness: skill${harnessModules.length ? ` + módulos ${harnessModules.join(', ')}` : ''}`
+    : ''
+  const extras = (wantBaserules ? 1 : 0) + (guardrailFiles.length > 0 ? 1 : 0) + (wantLocalSkills ? 1 : 0) + (wantWorkflows ? 1 : 0) + (harnessModules !== null ? 1 : 0)
   note(
-    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs, ${counts.local} locais${baseruleLine}${guardrailLine}${localLine}\n` +
+    `${counts.plugin} plugins, ${counts.skill} skills, ${counts.mcp} MCPs, ${counts.local} locais${baseruleLine}${guardrailLine}${localLine}${harnessLine}\n` +
       toInstall.map((it) => `  - ${it.label}`).join('\n'),
     `${toInstall.length + extras} itens`
   )
@@ -284,6 +325,36 @@ async function main(): Promise<void> {
     }
   }
 
+  // Quality harness install
+  if (harnessModules !== null) {
+    const s = spinner()
+    s.start('Instalando quality-harness...')
+    try {
+      installHarnessSkill(projectDir, TOOL_ROOT)
+      addHarnessNote(projectDir)
+      results.push({ label: 'quality-harness skill', success: true })
+      s.stop('OK quality-harness → .claude/skills/quality-harness/')
+    } catch (err: any) {
+      results.push({ label: 'quality-harness skill', success: false, error: err?.message ?? String(err) })
+      s.stop('FALHOU quality-harness skill', 2)
+    }
+    if (harnessModules.length > 0) {
+      const sm = spinner()
+      sm.start(`Aplicando módulos do harness (${harnessModules.join(', ')})...`)
+      try {
+        const res = applyModules(projectDir, TOOL_ROOT, harnessModules, harnessPython)
+        results.push({ label: 'quality-harness módulos', success: true })
+        sm.stop(res.mode === 'python'
+          ? `OK módulos → .github/standards.json, assets e .mcp.json`
+          : `OK módulos → .github/standards.json (dependências e assets serão aplicados pelo skill)`)
+        if (res.mode === 'python' && res.report.trim()) note(res.report.trim(), 'Relatório do harness')
+      } catch (err: any) {
+        results.push({ label: 'quality-harness módulos', success: false, error: err?.message ?? String(err) })
+        sm.stop('FALHOU quality-harness módulos', 2)
+      }
+    }
+  }
+
   // CLAUDE.md update
   if (claudeMdImports.length > 0) {
     const s = spinner()
@@ -305,6 +376,7 @@ async function main(): Promise<void> {
       'Falhas:\n' + failures.map((f) => `  - ${f.label}: ${f.error}`).join('\n')
     )
   }
+  if (harnessModules !== null) log.info('Próximo passo: rode /quality-harness no Claude para instalar o core.')
   outro(`${ok} instalados, ${failures.length} falharam`)
   process.exit(failures.length > 0 ? 1 : 0)
 }

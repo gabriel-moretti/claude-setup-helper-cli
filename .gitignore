@@ -1,2 +1,7 @@
+# Dependências e build
 node_modules/
 dist/
+
+# Bytecode Python gerado ao rodar os scripts/testes do quality-harness
+__pycache__/
+*.pyc

@@ -27,6 +27,7 @@
 | ⏪ | revert | revert commit |
 
 - SHOULD keep each commit atomic: one logical change. NEVER mix a refactor and a feature in one commit.
+- NEVER add AI attribution to commits or PRs: no `Co-Authored-By` trailers for AI tools (Claude, Copilot, Cursor, ...), no "Generated with ..." lines. The quality-harness `commit-msg` hook strips them anyway.
 - NEVER commit commented-out code, debug prints, `console.log`, or TODO-without-owner as part of a "done" change.
 
 ## Agent commit policy (hard boundary)
@@ -39,6 +40,7 @@
 ## Branching
 
 - SHOULD name branches in English: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`, `hotfix/<slug>`.
+- NEVER use AI-tool branch prefixes (`claude/`, `copilot/`, `cursor/`, `codex/`). Use the Conventional Branch prefixes above.
 - MUST branch off the primary branch fresh; NEVER stack work on a stale branch without rebasing/merging first.
 - SHOULD keep branches short-lived; a branch older than a sprint is a merge-conflict factory.
 
